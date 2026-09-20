@@ -2,16 +2,17 @@ import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { JwtAuthGuard } from './auth/guards/jwt-auth-guard';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    // Enable CORS with explicit config
     cors: {
       origin: [
         'http://localhost:3000', // Next.js dev server
         'http://127.0.0.1:3000',
-        'http://localhost:4000', // Next.js dev server
+        'http://localhost:4000',
         'http://127.0.0.1:4000',
       ],
       credentials: true, // Allow Authorization headers & cookies
@@ -20,6 +21,7 @@ async function bootstrap() {
     },
   });
 
+  app.use(cookieParser());
   app.setGlobalPrefix('api/v1');
 
   app.useGlobalPipes(
@@ -32,11 +34,13 @@ async function bootstrap() {
   );
 
   app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalInterceptors(new TransformInterceptor());
 
-  // Global guard: ensure @Public() is on login/register routes!
+  // Global JWT guard: routes marked with @Public() bypass it
   app.useGlobalGuards(new JwtAuthGuard(app.get(Reflector)));
 
-  await app.listen(process.env.PORT ?? 3001);
-  console.log(`Server running on http://localhost:${process.env.PORT ?? 3001}`);
+  const port = process.env.PORT ?? 3001;
+  await app.listen(port);
+  console.log(`Server running on http://localhost:${port}/api/v1`);
 }
-bootstrap();
+void bootstrap();

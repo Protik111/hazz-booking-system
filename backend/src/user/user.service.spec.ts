@@ -2,23 +2,27 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { Repository } from 'typeorm';
 import { ConflictException } from '@nestjs/common';
+import { UserRole } from './enums/user-role.enum';
+import { UserStatus } from './enums/user-status.enum';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt');
 
 describe('UserService', () => {
   let service: UserService;
-  let repo: Repository<User>;
 
-  const mockUser = {
+  const mockUser: User = {
     id: 'user-id',
     email: 'test@example.com',
+    phone: '01700000000',
     password_hash: 'hashed-password',
     name: 'Test User',
+    role: UserRole.USER,
+    status: UserStatus.ACTIVE,
     created_at: new Date(),
     updated_at: new Date(),
+    deleted_at: null,
   };
 
   const mockRepository = {
@@ -40,7 +44,6 @@ describe('UserService', () => {
     }).compile();
 
     service = module.get<UserService>(UserService);
-    repo = module.get<Repository<User>>(getRepositoryToken(User));
   });
 
   it('should be defined', () => {
@@ -48,7 +51,12 @@ describe('UserService', () => {
   });
 
   describe('create', () => {
-    const createDto = { name: 'Test User', email: 'test@example.com', password: 'password' };
+    const createDto = {
+      name: 'Test User',
+      email: 'test@example.com',
+      phone: '01700000000',
+      password: 'password123',
+    };
 
     it('should successfully create a new user', async () => {
       mockRepository.findOne.mockResolvedValue(null);
@@ -62,10 +70,15 @@ describe('UserService', () => {
         id: mockUser.id,
         email: mockUser.email,
         name: mockUser.name,
+        phone: mockUser.phone,
+        role: mockUser.role,
+        status: mockUser.status,
         created_at: mockUser.created_at,
         updated_at: mockUser.updated_at,
       });
-      expect(mockRepository.findOne).toHaveBeenCalledWith({ where: { email: createDto.email } });
+      expect(mockRepository.findOne).toHaveBeenCalledWith({
+        where: { email: createDto.email.toLowerCase() },
+      });
       expect(bcrypt.hash).toHaveBeenCalledWith(createDto.password, 10);
       expect(mockRepository.create).toHaveBeenCalled();
       expect(mockRepository.save).toHaveBeenCalled();
@@ -74,7 +87,9 @@ describe('UserService', () => {
     it('should throw ConflictException if email exists', async () => {
       mockRepository.findOne.mockResolvedValue(mockUser);
 
-      await expect(service.create(createDto)).rejects.toThrow(ConflictException);
+      await expect(service.create(createDto)).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 
@@ -85,10 +100,12 @@ describe('UserService', () => {
       const result = await service.findByEmailForAuth('test@example.com');
 
       expect(result).toEqual(mockUser);
-      expect(mockRepository.findOne).toHaveBeenCalledWith(expect.objectContaining({
-        where: { email: 'test@example.com' },
-        select: expect.arrayContaining(['password_hash']),
-      }));
+      expect(mockRepository.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { email: 'test@example.com' },
+          select: expect.arrayContaining(['password_hash', 'role', 'status']),
+        }),
+      );
     });
   });
 
@@ -99,10 +116,12 @@ describe('UserService', () => {
       const result = await service.findById('user-id');
 
       expect(result).toEqual(mockUser);
-      expect(mockRepository.findOne).toHaveBeenCalledWith(expect.objectContaining({
-        where: { id: 'user-id' },
-        select: expect.not.arrayContaining(['password_hash']),
-      }));
+      expect(mockRepository.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'user-id' },
+          select: expect.not.arrayContaining(['password_hash']),
+        }),
+      );
     });
   });
 });

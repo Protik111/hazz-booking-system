@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { getDatabaseConfig } from './config/database.config';
 import { HealthController } from './health.controller';
-import { EventEmitterModule } from '@nestjs/event-emitter';
+import { AuthModule } from './auth/auth.module';
+import { UserModule } from './user/user.module';
 import { PackagesModule } from './packages/packages.module';
 import { BookingsModule } from './bookings/bookings.module';
 
@@ -15,12 +17,9 @@ import { BookingsModule } from './bookings/bookings.module';
       useFactory: (config: ConfigService) => getDatabaseConfig(config),
       inject: [ConfigService],
     }),
-    AuthModule,
-    WorkspaceModule,
-    DocumentModule,
-    UserModule,
-    WorkspaceMemberModule,
     EventEmitterModule.forRoot({ global: true }),
+    AuthModule,
+    UserModule,
     PackagesModule,
     BookingsModule,
   ],
