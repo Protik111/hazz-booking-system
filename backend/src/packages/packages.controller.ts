@@ -1,42 +1,102 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { PackagesService } from './packages.service';
+import { Public } from '../common/decorators/public.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { UserRole } from '../user/enums/user-role.enum';
+import { ListPackagesQueryDto } from './dto/list-packages-query.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { UpdatePackageDto } from './dto/update-package.dto';
+import { CreateTierDto } from './dto/create-tier.dto';
+import { UpdateTierDto } from './dto/update-tier.dto';
+import { UpdateTierQuotaDto } from './dto/update-tier-quota.dto';
 
+// ─── Public Package Routes ────────────────────────────────────────────────────
+
+@Public()
 @Controller('packages')
 export class PackagesController {
   constructor(private readonly packagesService: PackagesService) {}
 
-  @Post()
-  create(@Body() createPackageDto: CreatePackageDto) {
-    return this.packagesService.create(createPackageDto);
-  }
-
   @Get()
-  findAll() {
-    return this.packagesService.findAll();
+  async listPublished(@Query() query: ListPackagesQueryDto) {
+    return this.packagesService.listPublished(query);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.packagesService.findOne(+id);
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.packagesService.findOnePublic(id);
+  }
+}
+
+// ─── Admin Package Routes ─────────────────────────────────────────────────────
+
+@UseGuards(RolesGuard)
+@Roles(UserRole.ADMIN)
+@Controller('admin')
+export class AdminPackagesController {
+  constructor(private readonly packagesService: PackagesService) {}
+
+  @Get('packages')
+  async listAll(@Query() query: ListPackagesQueryDto) {
+    return this.packagesService.adminListAll(query);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePackageDto: UpdatePackageDto) {
-    return this.packagesService.update(+id, updatePackageDto);
+  @Post('packages')
+  @HttpCode(HttpStatus.CREATED)
+  async create(@Body() dto: CreatePackageDto) {
+    return this.packagesService.createPackage(dto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.packagesService.remove(+id);
+  @Patch('packages/:id')
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdatePackageDto,
+  ) {
+    return this.packagesService.updatePackage(id, dto);
+  }
+
+  @Delete('packages/:id')
+  @HttpCode(HttpStatus.OK)
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.packagesService.deletePackage(id);
+  }
+
+  @Post('packages/:packageId/tiers')
+  @HttpCode(HttpStatus.CREATED)
+  async createTier(
+    @Param('packageId', ParseUUIDPipe) packageId: string,
+    @Body() dto: CreateTierDto,
+  ) {
+    return this.packagesService.createTier(packageId, dto);
+  }
+
+  @Patch('tiers/:id')
+  async updateTier(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateTierDto,
+  ) {
+    return this.packagesService.updateTier(id, dto);
+  }
+
+  @Patch('tiers/:id/quota')
+  async updateTierQuota(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateTierQuotaDto,
+  ) {
+    return this.packagesService.updateTierQuota(id, dto);
   }
 }

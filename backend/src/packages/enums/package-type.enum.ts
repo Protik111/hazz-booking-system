@@ -1,0 +1,6 @@
+export enum PackageType {
+  HAJJ = 'HAJJ',
+  RAMADAN_UMRAH = 'RAMADAN_UMRAH',
+  OFF_SEASON_UMRAH = 'OFF_SEASON_UMRAH',
+  ZIYARAH = 'ZIYARAH',
+}
