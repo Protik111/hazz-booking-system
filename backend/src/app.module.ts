@@ -15,6 +15,9 @@ import { CancellationModule } from './cancellation/cancellation.module';
 import { RefundsModule } from './refunds/refunds.module';
 import { VendorsModule } from './vendors/vendors.module';
 import { InventoryModule } from './inventory/inventory.module';
+import { AuditModule } from './audit/audit.module';
+import { ReportModule } from './report/report.module';
+import { SchedulerModule } from './scheduler/scheduler.module';
 
 @Module({
   imports: [
@@ -36,6 +39,9 @@ import { InventoryModule } from './inventory/inventory.module';
     RefundsModule,
     VendorsModule,
     InventoryModule,
+    AuditModule,
+    ReportModule,
+    SchedulerModule,
   ],
   controllers: [HealthController],
 })
