@@ -9,6 +9,8 @@ import { UserModule } from './user/user.module';
 import { PackagesModule } from './packages/packages.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { PilgrimsModule } from './pilgrims/pilgrims.module';
+import { InstallmentsModule } from './installments/installments.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { PilgrimsModule } from './pilgrims/pilgrims.module';
     PackagesModule,
     BookingsModule,
     PilgrimsModule,
+    InstallmentsModule,
+    PaymentsModule,
   ],
   controllers: [HealthController],
 })

@@ -1,6 +1,1 @@
-export enum InstallmentStatus {
-  PENDING = 'PENDING',
-  PARTIALLY_PAID = 'PARTIALLY_PAID',
-  PAID = 'PAID',
-  OVERDUE = 'OVERDUE',
-}
+export * from '../../installments/enums/installment-status.enum';
