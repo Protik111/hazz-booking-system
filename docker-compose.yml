@@ -1,6 +1,7 @@
-version: '3.8'
-
 services:
+  # ─────────────────────────────────────────────
+  # PostgreSQL – primary database
+  # ─────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: hajj_postgres
@@ -10,23 +11,75 @@ services:
       POSTGRES_PASSWORD: postgrespassword
       POSTGRES_DB: hajj_booking
     ports:
-      - '5432:5432'
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d hajj_booking']
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hajj_booking"]
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
+  # ─────────────────────────────────────────────
+  # Redis – session / idempotency key store
+  # ─────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: hajj_redis
     restart: unless-stopped
     ports:
-      - '6379:6379'
+      - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────────
+  # NestJS Backend API
+  # ─────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hajj_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./backend/.env.docker
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      # Database / Redis use Docker service names as host
+      DATABASE_URL: postgresql://postgres:postgrespassword@postgres:5432/hajj_booking
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3001:3001"
+
+  # ─────────────────────────────────────────────
+  # Next.js Frontend
+  # ─────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: hajj_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    env_file:
+      - ./frontend/.env.docker
+    environment:
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
 
 volumes:
   postgres_data:
