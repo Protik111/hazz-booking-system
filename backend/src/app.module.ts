@@ -13,6 +13,8 @@ import { InstallmentsModule } from './installments/installments.module';
 import { PaymentsModule } from './payments/payments.module';
 import { CancellationModule } from './cancellation/cancellation.module';
 import { RefundsModule } from './refunds/refunds.module';
+import { VendorsModule } from './vendors/vendors.module';
+import { InventoryModule } from './inventory/inventory.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { RefundsModule } from './refunds/refunds.module';
     PaymentsModule,
     CancellationModule,
     RefundsModule,
+    VendorsModule,
+    InventoryModule,
   ],
   controllers: [HealthController],
 })
