@@ -11,6 +11,8 @@ import { BookingsModule } from './bookings/bookings.module';
 import { PilgrimsModule } from './pilgrims/pilgrims.module';
 import { InstallmentsModule } from './installments/installments.module';
 import { PaymentsModule } from './payments/payments.module';
+import { CancellationModule } from './cancellation/cancellation.module';
+import { RefundsModule } from './refunds/refunds.module';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { PaymentsModule } from './payments/payments.module';
     PilgrimsModule,
     InstallmentsModule,
     PaymentsModule,
+    CancellationModule,
+    RefundsModule,
   ],
   controllers: [HealthController],
 })
