@@ -94,3 +94,42 @@ npm run dev
 ```
 
 The complete API contract lives in `docs/API_SPEC.md`.
+
+---
+
+## Test credentials (seeded users)
+
+The backend ships with a seeder that creates two demo accounts. **The seeder
+does not run automatically** — execute it once after the stack is up, then
+log in with the credentials below.
+
+### Run the seeder
+
+```bash
+# from the repo root, with the backend running on :3001
+cd backend
+npm run seed
+```
+
+Output confirms the two accounts:
+
+```
++ Created Admin: admin@hajj.gov.bd (password: Admin123!)
++ Created Pilgrim User: pilgrim@example.com (password: User123!)
+```
+
+(The seeder is idempotent — re-running it reports `= Admin already exists`
+and doesn't change the password. If you need to reset the passwords, drop
+the database volume with `docker compose down -v` and re-seed.)
+
+### Sign-in matrix
+
+| Role    | Email                  | Password    | Where to sign in                                  |
+| ------- | ---------------------- | ----------- | ------------------------------------------------- |
+| Pilgrim | `pilgrim@example.com` | `User123!` | http://localhost:3000/login — goes to `/dashboard` |
+| Admin   | `admin@hajj.gov.bd`   | `Admin123!` | http://localhost:3000/login — goes to `/admin`     |
+
+Use the **Admin** account to see the admin nav (Packages, Bookings, Payments,
+Manual payments, Cancellations, Refunds, Reconciliation, Vendors, Inventory,
+Reports, Audit logs). Use the **Pilgrim** account to see the user flow
+(browse packages, book, pay, request cancellation).
