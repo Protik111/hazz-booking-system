@@ -364,19 +364,6 @@ export default function AdminPackageDetailPage({ params }: Props) {
                       >
                         Edit
                       </button>
-                      <button
-                        onClick={() =>
-                          alert(
-                            "Tier deletion is not supported. Adjust price or mark the tier INACTIVE instead.",
-                          )
-                        }
-                        className="text-danger hover:underline"
-                        disabled={
-                          t.heldSeats > 0 || t.confirmedSeats > 0
-                        }
-                      >
-                        Delete
-                      </button>
                     </div>
                   </td>
                 </tr>

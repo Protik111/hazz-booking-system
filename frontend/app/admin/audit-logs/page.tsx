@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useApi } from "@/hooks/useApi";
 import { listAuditLogs } from "@/lib/api/endpoints";
 import PageHeader from "@/components/ui/PageHeader";
@@ -105,7 +106,13 @@ export default function AuditLogsPage() {
                       {log.actorId ? log.actorId.slice(0, 8) : "system"}
                     </td>
                     <td className="px-4 py-3 max-w-md truncate font-mono text-meta text-text-subtle">
-                      {summarize(log.oldValue, log.newValue)}
+                      <Link
+                        href={`/admin/audit-logs/${log.id}`}
+                        className="hover:text-text hover:underline"
+                        title="View full audit entry"
+                      >
+                        {summarize(log.oldValue, log.newValue)}
+                      </Link>
                     </td>
                   </tr>
                 ))}

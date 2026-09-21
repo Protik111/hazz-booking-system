@@ -77,6 +77,10 @@ function NewPaymentFlow() {
 
   const [bookingId, setBookingId] = useState(presetBookingId);
   const [amountStr, setAmountStr] = useState("");
+  // Track whether the user has manually edited the amount — once true we
+  // never auto-overwrite it (otherwise refetches of `bookingsData` would
+  // wipe their edits).
+  const [amountTouched, setAmountTouched] = useState(false);
   const [method, setMethod] = useState<Method>("BKASH");
   const [errors, setErrors] = useState<{
     booking_id?: string;
@@ -112,19 +116,24 @@ function NewPaymentFlow() {
   useEffect(() => {
     if (!presetBooking) return;
     setBookingId(presetBooking.id);
-    if (!amountStr && presetBooking.amountOutstanding > 0) {
+    if (!amountTouched && presetBooking.amountOutstanding > 0) {
       setAmountStr(presetBooking.amountOutstanding.toString());
     }
-  }, [presetBooking, amountStr]);
+  }, [presetBooking, amountTouched]);
 
   // If user changes booking in the dropdown, refresh the amount default to its outstanding.
   useEffect(() => {
     if (!bookingId || !bookingsData?.data) return;
     const b = bookingsData.data.find((x) => x.id === bookingId);
-    if (b && b.amountOutstanding > 0) {
+    if (!b) return;
+    if (!amountTouched && b.amountOutstanding > 0) {
       setAmountStr(b.amountOutstanding.toString());
     }
-  }, [bookingId, bookingsData]);
+    // If the booking changes, the previous amount no longer applies — reset
+    // the touched flag so the new booking's outstanding becomes the default.
+    setAmountTouched(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookingId]);
 
   const selectedBooking = useMemo(() => {
     if (!bookingId) return null;
@@ -232,7 +241,10 @@ function NewPaymentFlow() {
             min={1}
             step="0.01"
             inputMode="decimal"
-            onChange={(e) => setAmountStr(e.target.value)}
+            onChange={(e) => {
+              setAmountStr(e.target.value);
+              setAmountTouched(true);
+            }}
             error={errors.amount}
             hint={
               selectedBooking

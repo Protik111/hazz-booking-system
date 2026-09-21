@@ -36,17 +36,23 @@ export default function PaymentsListPage() {
     [page],
   );
 
-  // Lightweight booking lookup so we can show the booking number for each payment.
+  // Bookings are only needed to enrich the table rows with booking numbers.
+  // Skip the fetch entirely when there are no payments yet — most users hit
+  // this page in their first session before making any payment.
+  const payments = data?.data ?? [];
+  const meta = data?.meta;
+  const needsBookingLookup = payments.length > 0;
   const { data: bookings } = useApi(
-    () => listBookings({ limit: 50 }),
-    [],
+    () =>
+      needsBookingLookup
+        ? listBookings({ limit: 50 })
+        : Promise.resolve(null),
+    // Re-fetch only when we transition from "no payments" → "has payments".
+    [needsBookingLookup],
   );
   const bookingsById = new Map(
     (bookings?.data ?? []).map((b) => [b.id, b]),
   );
-
-  const payments = data?.data ?? [];
-  const meta = data?.meta;
 
   // Count which bookings still owe money so the CTA can prompt users to pay.
   const unpaidBookingCount = (bookings?.data ?? []).filter(

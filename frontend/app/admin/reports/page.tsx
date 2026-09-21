@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useApi } from "@/hooks/useApi";
 import {
   reportBookings,
@@ -8,6 +9,7 @@ import {
   reportPayments,
   reportRefunds,
   reportSeatQuota,
+  type SeatQuotaReportResponse,
 } from "@/lib/api/endpoints";
 import PageHeader from "@/components/ui/PageHeader";
 import Card from "@/components/ui/Card";
@@ -67,6 +69,34 @@ export default function ReportsPage() {
 }
 
 function OverviewTab() {
+  return (
+    <SeatQuotaPanel
+      kpiLabel="Total quota"
+      kpiSubtitle="Platform-wide quota overview."
+      showTierLinks={false}
+    />
+  );
+}
+
+function SeatQuotaTab() {
+  return (
+    <SeatQuotaPanel
+      kpiLabel="Total quota"
+      kpiSubtitle="Per-tier breakdown. Click a package to edit it."
+      showTierLinks={true}
+    />
+  );
+}
+
+function SeatQuotaPanel({
+  kpiLabel,
+  kpiSubtitle,
+  showTierLinks,
+}: {
+  kpiLabel: string;
+  kpiSubtitle: string;
+  showTierLinks: boolean;
+}) {
   const { data, loading, error, refetch } = useApi(() => reportSeatQuota(), []);
 
   if (loading) {
@@ -77,67 +107,102 @@ function OverviewTab() {
     );
   }
   if (error || !data) {
-    return <ErrorState message={error ?? "Couldn't load report."} retry={refetch} />;
+    return (
+      <ErrorState message={error ?? "Couldn't load report."} retry={refetch} />
+    );
   }
 
   const summary = data.summary;
 
   return (
     <>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <KpiCard label="Total quota" value={summary.total_quota} />
-        <KpiCard label="Available" value={summary.available_seats} tone="success" />
+      <p className="text-meta text-text-muted">{kpiSubtitle}</p>
+
+      <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <KpiCard label={kpiLabel} value={summary.total_quota} />
+        <KpiCard
+          label="Available"
+          value={summary.available_seats}
+          tone="success"
+        />
         <KpiCard label="Held" value={summary.held_seats} tone="warning" />
-        <KpiCard label="Confirmed" value={summary.confirmed_seats} tone="success" />
+        <KpiCard
+          label="Confirmed"
+          value={summary.confirmed_seats}
+          tone="success"
+        />
         <KpiCard
           label="Utilization"
           value={`${summary.overall_utilization_percent}%`}
         />
       </div>
 
-      <Card className="mt-6 overflow-hidden p-0">
-        <table className="w-full text-default">
-          <thead className="bg-base text-meta uppercase tracking-[0.04em] text-text-subtle">
-            <tr>
-              <th className="px-4 py-3 text-left">Package</th>
-              <th className="px-4 py-3 text-left">Tier</th>
-              <th className="px-4 py-3 text-right">Price</th>
-              <th className="px-4 py-3 text-right">Quota</th>
-              <th className="px-4 py-3 text-right">Held</th>
-              <th className="px-4 py-3 text-right">Confirmed</th>
-              <th className="px-4 py-3 text-right">Available</th>
-              <th className="px-4 py-3 text-right">Util.</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {data.tiers.map((t, i) => (
-              <tr key={`${t.tierId}-${i}`}>
-                <td className="px-4 py-3 text-text">{t.packageName}</td>
-                <td className="px-4 py-3 text-text-muted">{t.tierName}</td>
-                <td className="px-4 py-3 text-right text-text">
-                  {formatBDT(t.price)} {t.currency}
-                </td>
-                <td className="px-4 py-3 text-right font-semibold text-text">
-                  {t.totalQuota}
-                </td>
-                <td className="px-4 py-3 text-right text-text-muted">
-                  {t.heldSeats}
-                </td>
-                <td className="px-4 py-3 text-right text-text-muted">
-                  {t.confirmedSeats}
-                </td>
-                <td className="px-4 py-3 text-right text-text">
-                  {t.availableSeats}
-                </td>
-                <td className="px-4 py-3 text-right font-semibold text-text">
-                  {t.utilizationRatePercent}%
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
+      <SeatQuotaTable data={data} showLinks={showTierLinks} />
     </>
+  );
+}
+
+function SeatQuotaTable({
+  data,
+  showLinks,
+}: {
+  data: SeatQuotaReportResponse;
+  showLinks: boolean;
+}) {
+  return (
+    <Card className="mt-6 overflow-hidden p-0">
+      <table className="w-full text-default">
+        <thead className="bg-base text-meta uppercase tracking-[0.04em] text-text-subtle">
+          <tr>
+            <th className="px-4 py-3 text-left">Package</th>
+            <th className="px-4 py-3 text-left">Tier</th>
+            <th className="px-4 py-3 text-right">Price</th>
+            <th className="px-4 py-3 text-right">Quota</th>
+            <th className="px-4 py-3 text-right">Held</th>
+            <th className="px-4 py-3 text-right">Confirmed</th>
+            <th className="px-4 py-3 text-right">Available</th>
+            <th className="px-4 py-3 text-right">Util.</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {data.tiers.map((t, i) => (
+            <tr key={`${t.tierId}-${i}`}>
+              <td className="px-4 py-3 text-text">
+                {showLinks ? (
+                  <Link
+                    href={`/admin/packages/${t.packageId}`}
+                    className="hover:underline"
+                  >
+                    {t.packageName}
+                  </Link>
+                ) : (
+                  t.packageName
+                )}
+              </td>
+              <td className="px-4 py-3 text-text-muted">{t.tierName}</td>
+              <td className="px-4 py-3 text-right text-text">
+                {formatBDT(t.price)} {t.currency}
+              </td>
+              <td className="px-4 py-3 text-right font-semibold text-text">
+                {t.totalQuota}
+              </td>
+              <td className="px-4 py-3 text-right text-text-muted">
+                {t.heldSeats}
+              </td>
+              <td className="px-4 py-3 text-right text-text-muted">
+                {t.confirmedSeats}
+              </td>
+              <td className="px-4 py-3 text-right text-text">
+                {t.availableSeats}
+              </td>
+              <td className="px-4 py-3 text-right font-semibold text-text">
+                {t.utilizationRatePercent}%
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Card>
   );
 }
 
@@ -378,8 +443,4 @@ function RefundsTab() {
       </div>
     </>
   );
-}
-
-function SeatQuotaTab() {
-  return <OverviewTab />;
 }

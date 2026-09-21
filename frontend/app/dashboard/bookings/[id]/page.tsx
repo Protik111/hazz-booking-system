@@ -1,6 +1,7 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useApi } from "@/hooks/useApi";
 import {
   cancelPilgrim,
@@ -19,12 +20,27 @@ import Input from "@/components/ui/Input";
 import { ApiError } from "@/lib/api/types";
 import { formatBDT, formatDate, formatDateTime } from "@/lib/format";
 
+/**
+ * How long to keep polling the booking after a payment-redirect until either
+ * the status moves to CONFIRMED or we give up. Server-side webhook handling
+ * is the source of truth (see PROJECT_CONTEXT.md §"Payment verification"),
+ * so the UI never declares success — it only reflects what the server says.
+ */
+const VERIFY_POLL_MS = 2000;
+const VERIFY_TIMEOUT_MS = 30_000;
+
 interface BookingDetailProps {
   params: Promise<{ id: string }>;
 }
 
 export default function BookingDetailPage({ params }: BookingDetailProps) {
   const { id } = use(params);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  // `?payment=success|fail|requested` is set by the payment-init flow when
+  // it redirects back here. We use it to render a verifying banner and to
+  // re-poll the booking until the server reflects the webhook outcome.
+  const paymentHint = searchParams.get("payment");
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
@@ -42,6 +58,33 @@ export default function BookingDetailPage({ params }: BookingDetailProps) {
     () => listBookingCancellations(id),
     [id],
   );
+
+  // Poll the booking while we're still in the verifying window. Stops when
+  // either the booking moves to a paid/confirmed state OR the timeout fires,
+  // whichever comes first.
+  useEffect(() => {
+    if (paymentHint !== "success") return;
+    if (!booking) return;
+    if (
+      booking.status === "CONFIRMED" ||
+      booking.status === "PARTIALLY_PAID" ||
+      booking.status === "COMPLETED"
+    ) {
+      // Already past verifying — just clear the query param.
+      router.replace(`/dashboard/bookings/${id}`, { scroll: false });
+      return;
+    }
+    const deadline = Date.now() + VERIFY_TIMEOUT_MS;
+    const interval = setInterval(async () => {
+      if (Date.now() >= deadline) {
+        clearInterval(interval);
+        return;
+      }
+      await refetch();
+    }, VERIFY_POLL_MS);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentHint, booking?.status, id]);
 
   if (loading) {
     return (
@@ -108,6 +151,51 @@ export default function BookingDetailPage({ params }: BookingDetailProps) {
 
   return (
     <>
+      {paymentHint === "success" &&
+        booking.status !== "CONFIRMED" &&
+        booking.status !== "PARTIALLY_PAID" &&
+        booking.status !== "COMPLETED" && (
+          <Card className="mb-6 border-info/30 bg-info-bg">
+            <div className="flex items-start gap-3">
+              <Spinner size="sm" />
+              <div>
+                <p className="text-default font-semibold text-text">
+                  Verifying your payment…
+                </p>
+                <p className="mt-1 text-meta text-text-muted">
+                  We&apos;re waiting for the gateway to confirm. This usually
+                  takes a few seconds. Don&apos;t close this page.
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+
+      {paymentHint === "requested" && (
+        <Card className="mb-6 border-info/30 bg-info-bg">
+          <p className="text-default text-text">
+            Manual payment submitted. An admin will review and approve it
+            shortly.
+          </p>
+        </Card>
+      )}
+
+      {paymentHint === "fail" && (
+        <Card className="mb-6 border-danger/30 bg-danger-bg">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-default text-text">
+              The payment did not go through. Please try again.
+            </p>
+            <Button
+              size="sm"
+              href={`/dashboard/payments/new?bookingId=${booking.id}`}
+            >
+              Try again
+            </Button>
+          </div>
+        </Card>
+      )}
+
       <PageHeader
         title={`Booking ${booking.bookingNumber}`}
         description={

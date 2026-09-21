@@ -177,10 +177,29 @@ export interface RawPayment {
   amount: string;
   currency: string;
   method: RawPaymentMethod;
-  status: RawPaymentStatus;
+  /**
+   * Gateway payments: PENDING | PROCESSING | SUCCESS | FAILED.
+   * Manual branch payments: PENDING_APPROVAL | APPROVED | REJECTED.
+   * Widened to a union here so the single Payment shape covers both.
+   */
+  status:
+    | RawPaymentStatus
+    | "PENDING_APPROVAL"
+    | "APPROVED"
+    | "REJECTED";
   gateway_transaction_id: string | null;
   gateway_reference: string | null;
   payment_date: string | null;
+  /** Manual branch only — bank/branch reference supplied by the admin. */
+  reference: string | null;
+  /** Manual branch only — free-text notes from the admin. */
+  notes: string | null;
+  /** Manual branch only — UUID of the admin who created the record. */
+  created_by_id: string | null;
+  /** Manual branch only — UUID of the admin who approved it. */
+  approved_by_id: string | null;
+  /** Manual branch only — populated when status = REJECTED. */
+  rejection_reason: string | null;
   metadata: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;

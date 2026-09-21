@@ -35,14 +35,17 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 export default function VendorsPage() {
-  const [, setPage] = useState(1);
+  const [expensesPage, setExpensesPage] = useState(1);
   const [tab, setTab] = useState<"vendors" | "expenses">("vendors");
 
   const [showVendor, setShowVendor] = useState(false);
   const [showExpense, setShowExpense] = useState(false);
 
   const vendors = useApi(() => listVendors({ limit: 50 }), []);
-  const expenses = useApi(() => listVendorExpenses({ limit: 20 }), []);
+  const expenses = useApi(
+    () => listVendorExpenses({ page: expensesPage, limit: 20 }),
+    [expensesPage],
+  );
 
   return (
     <>
@@ -89,7 +92,7 @@ export default function VendorsPage() {
           onRefetch={expenses.refetch}
           expenses={expenses.data?.data ?? []}
           meta={expenses.data?.meta ?? null}
-          setPage={setPage}
+          setPage={setExpensesPage}
         />
       )}
 

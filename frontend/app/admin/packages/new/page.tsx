@@ -123,14 +123,35 @@ export default function NewPackagePage() {
         })),
       });
 
-      // If admin chose to skip tiers on creation, offer to add them now.
+      // First tier is created atomically with the package; the rest are
+      // appended individually. If any of these fail, the package exists but
+      // is missing tiers — surface that to the user instead of silently
+      // routing to the detail page.
+      const failedTiers: string[] = [];
       for (const tier of validTiers.slice(1)) {
-        // First tier is created atomically with the package; add the rest.
-        await createTier(created.id, {
-          name: tier.name,
-          price: parseFloat(tier.price),
-          total_quota: parseInt(tier.total_quota, 10),
-        });
+        try {
+          await createTier(created.id, {
+            name: tier.name,
+            price: parseFloat(tier.price),
+            total_quota: parseInt(tier.total_quota, 10),
+          });
+        } catch (err) {
+          failedTiers.push(
+            `${tier.name}: ${
+              err instanceof ApiError ? err.message : "unknown error"
+            }`,
+          );
+        }
+      }
+
+      if (failedTiers.length > 0) {
+        setSubmitError(
+          `Package was created, but ${failedTiers.length} tier(s) failed: ` +
+            failedTiers.join("; ") +
+            " Open the package detail page to retry the missing tiers.",
+        );
+        setSubmitting(false);
+        return;
       }
 
       router.push(`/admin/packages/${created.id}`);

@@ -12,6 +12,7 @@ const TABS = [
   { href: "/admin/packages", label: "Packages" },
   { href: "/admin/bookings", label: "Bookings" },
   { href: "/admin/payments", label: "Payments" },
+  { href: "/admin/manual-payments", label: "Manual payments" },
   { href: "/admin/cancellations", label: "Cancellations" },
   { href: "/admin/refunds", label: "Refunds" },
   { href: "/admin/reconciliation", label: "Reconciliation" },

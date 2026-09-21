@@ -192,10 +192,35 @@ export interface Payment {
   amount: number;
   currency: string;
   method: "BKASH" | "NAGAD" | "VISA" | "MANUAL_BRANCH";
-  status: "PENDING" | "PROCESSING" | "SUCCESS" | "FAILED";
+  /**
+   * For gateway payments: PENDING | PROCESSING | SUCCESS | FAILED.
+   * For manual branch payments the lifecycle is:
+   *   PENDING_APPROVAL → APPROVED → SUCCESS (or REJECTED).
+   * `normalizePayment` widens the type to accept both shapes so a single
+   * `adminListPayments({ method: "MANUAL_BRANCH" })` call returns the
+   * approval-pending view alongside the rest.
+   */
+  status:
+    | "PENDING"
+    | "PROCESSING"
+    | "SUCCESS"
+    | "FAILED"
+    | "PENDING_APPROVAL"
+    | "APPROVED"
+    | "REJECTED";
   gatewayTransactionId: string | null;
   gatewayReference: string | null;
   paymentDate: string | null;
+  /** Manual branch only — bank/branch reference supplied by the admin. */
+  reference: string | null;
+  /** Manual branch only — free-text notes from the admin. */
+  notes: string | null;
+  /** Manual branch only — UUID of the admin who created the record. */
+  createdById: string | null;
+  /** Manual branch only — UUID of the admin who approved it. */
+  approvedById: string | null;
+  /** Manual branch only — populated when status = REJECTED. */
+  rejectionReason: string | null;
   metadata: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
@@ -521,6 +546,11 @@ export function normalizePayment(p: RawPayment): Payment {
     gatewayTransactionId: p.gateway_transaction_id,
     gatewayReference: p.gateway_reference,
     paymentDate: p.payment_date,
+    reference: p.reference,
+    notes: p.notes,
+    createdById: p.created_by_id,
+    approvedById: p.approved_by_id,
+    rejectionReason: p.rejection_reason,
     metadata: p.metadata,
     createdAt: p.created_at,
     updatedAt: p.updated_at,
