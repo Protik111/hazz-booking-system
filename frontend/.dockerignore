@@ -1,0 +1,32 @@
+# Build artefacts
+node_modules
+.next
+out
+build
+dist
+
+# Local env files (only .env.docker is consumed via env_file)
+.env
+.env.local
+.env.*.local
+
+# VCS
+.git
+.gitignore
+
+# Tooling artefacts
+.eslintcache
+*.log
+npm-debug.log*
+
+# Docker-specific
+Dockerfile
+.dockerignore
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+
+# Project-internal noise
+.qodo

@@ -1,0 +1,35 @@
+# dependencies
+node_modules/
+/.pnp
+.pnp.*
+
+# next.js build output
+.next/
+out/
+build/
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# env files — only .env.example and .env.docker are tracked
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE / editor
+.vscode/
+.idea/
+.DS_Store
+
+# misc
+.tmp/
+.temp/

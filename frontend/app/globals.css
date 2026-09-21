@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+@theme {
+  /* Surfaces — light, calm, off-white base */
+  --color-base: #f8fafc;
+  --color-deep: #f1f5f9;
+  --color-card: #ffffff;
+  --color-card-alt: #f8fafc;
+  --color-navy: #0f172a;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+
+  /* Brand */
+  --color-emerald: #047857;
+  --color-emerald-light: #10b981;
+  --color-teal: #0d9488;
+  --color-teal-light: #14b8a6;
+  --color-gold: #b45309;
+  --color-gold-light: #f59e0b;
+  --color-gold-bg: #fffbeb;
+  --color-cyan: #0891b2;
+
+  /* Semantic */
+  --color-success: #047857;
+  --color-success-bg: #ecfdf5;
+  --color-warning: #b45309;
+  --color-warning-bg: #fffbeb;
+  --color-danger: #b91c1c;
+  --color-danger-bg: #fef2f2;
+  --color-info: #1d4ed8;
+  --color-info-bg: #eff6ff;
+
+  /* Text */
+  --color-text: #0f172a;
+  --color-text-muted: #475569;
+  --color-text-subtle: #64748b;
+  --color-white: #ffffff;
+
+  /* Radii */
+  --radius-card: 14px;
+  --radius-pill: 999px;
+  --radius-badge: 999px;
+  --radius-chip: 8px;
+
+  /* Layout */
+  --breakpoint-3xl: 1440px;
+
+  /* Typography scale */
+  --text-hero: 3.5rem;
+  --text-hero--line-height: 1.05;
+  --text-hero--letter-spacing: -0.02em;
+
+  --text-page-title: 2.5rem;
+  --text-page-title--line-height: 1.1;
+  --text-page-title--letter-spacing: -0.02em;
+
+  --text-section: 2rem;
+  --text-section--line-height: 1.15;
+  --text-section--letter-spacing: -0.01em;
+
+  --text-subheading: 1.5rem;
+  --text-subheading--line-height: 1.25;
+
+  --text-card-title: 1.25rem;
+  --text-card-title--line-height: 1.35;
+
+  --text-lead: 1.125rem;
+  --text-lead--line-height: 1.55;
+
+  --text-body: 1rem;
+  --text-body--line-height: 1.6;
+
+  --text-default: 0.9375rem;
+  --text-default--line-height: 1.5;
+
+  --text-meta: 0.75rem;
+  --text-meta--line-height: 1.4;
+  --text-meta--letter-spacing: 0.04em;
+}
+
+html {
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--color-base);
+  color: var(--color-text);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-emerald);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
