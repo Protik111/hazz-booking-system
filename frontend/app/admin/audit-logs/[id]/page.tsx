@@ -41,7 +41,7 @@ export default function AuditLogDetailPage({ params }: PageProps) {
       <div className="mb-4">
         <Link
           href="/admin/audit-logs"
-          className="text-meta text-text-muted hover:text-text"
+          className="cursor-pointer text-meta text-text-muted hover:text-text"
         >
           ← Back to audit logs
         </Link>

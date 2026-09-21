@@ -108,7 +108,7 @@ export default function AuditLogsPage() {
                     <td className="px-4 py-3 max-w-md truncate font-mono text-meta text-text-subtle">
                       <Link
                         href={`/admin/audit-logs/${log.id}`}
-                        className="hover:text-text hover:underline"
+                        className="cursor-pointer hover:text-text hover:underline"
                         title="View full audit entry"
                       >
                         {summarize(log.oldValue, log.newValue)}

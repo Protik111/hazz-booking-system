@@ -132,7 +132,7 @@ export default function AdminManualPaymentsPage() {
                       <td className="px-4 py-3 font-mono text-meta text-text-muted">
                         <Link
                           href={`/admin/bookings/${p.bookingId}`}
-                          className="text-text hover:underline"
+                          className="cursor-pointer text-text hover:underline"
                         >
                           {p.bookingId.slice(0, 8)}
                         </Link>

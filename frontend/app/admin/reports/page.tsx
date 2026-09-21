@@ -171,7 +171,7 @@ function SeatQuotaTable({
                 {showLinks ? (
                   <Link
                     href={`/admin/packages/${t.packageId}`}
-                    className="hover:underline"
+                    className="cursor-pointer hover:underline"
                   >
                     {t.packageName}
                   </Link>
