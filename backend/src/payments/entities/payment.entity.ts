@@ -57,11 +57,11 @@ export class Payment {
   status!: PaymentStatus;
 
   /** Set by the payment gateway on success */
-  @Column({ length: 200, nullable: true })
+  @Column({ type: 'varchar', length: 200, nullable: true })
   gateway_transaction_id!: string | null;
 
   /** Auxiliary reference such as bKash trxID */
-  @Column({ length: 200, nullable: true })
+  @Column({ type: 'varchar', length: 200, nullable: true })
   gateway_reference!: string | null;
 
   @Column({ type: 'timestamptz', nullable: true })
@@ -88,7 +88,7 @@ export class Payment {
   approved_by!: User | null;
 
   /** Free-text reference for branch payments (e.g. BRANCH-2026-00123) */
-  @Column({ length: 200, nullable: true })
+  @Column({ type: 'varchar', length: 200, nullable: true })
   reference!: string | null;
 
   /** Internal notes for manual payments */

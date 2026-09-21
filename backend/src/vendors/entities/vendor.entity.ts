@@ -29,13 +29,13 @@ export class Vendor {
   })
   type!: VendorType;
 
-  @Column({ length: 150, nullable: true })
+  @Column({ type: 'varchar', length: 150, nullable: true })
   contact_name!: string | null;
 
-  @Column({ length: 150, nullable: true })
+  @Column({ type: 'varchar', length: 150, nullable: true })
   contact_email!: string | null;
 
-  @Column({ length: 50, nullable: true })
+  @Column({ type: 'varchar', length: 50, nullable: true })
   contact_phone!: string | null;
 
   @Column({ type: 'text', nullable: true })

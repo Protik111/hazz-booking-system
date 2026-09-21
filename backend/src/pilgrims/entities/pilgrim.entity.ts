@@ -49,10 +49,10 @@ export class Pilgrim {
   @Column({ type: 'text', nullable: true })
   passport_document_url!: string | null;
 
-  @Column({ length: 30, nullable: true })
+  @Column({ type: 'varchar', length: 30, nullable: true })
   phone!: string | null;
 
-  @Column({ length: 150, nullable: true })
+  @Column({ type: 'varchar', length: 150, nullable: true })
   email!: string | null;
 
   @Column({

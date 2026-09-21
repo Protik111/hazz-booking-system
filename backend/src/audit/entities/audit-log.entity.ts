@@ -41,7 +41,7 @@ export class AuditLog {
   @Column({ type: 'jsonb', nullable: true })
   new_value!: Record<string, unknown> | null;
 
-  @Column({ length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   ip_address!: string | null;
 
   @Column({ type: 'text', nullable: true })

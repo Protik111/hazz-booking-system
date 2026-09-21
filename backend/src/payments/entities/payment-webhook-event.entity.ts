@@ -35,10 +35,10 @@ export class PaymentWebhookEvent {
    * Unique event identifier from gateway.
    * Must be indexed UNIQUE to prevent double-processing.
    */
-  @Column({ length: 200, nullable: true })
+  @Column({ type: 'varchar', length: 200, nullable: true })
   event_id!: string | null;
 
-  @Column({ length: 200, nullable: true })
+  @Column({ type: 'varchar', length: 200, nullable: true })
   gateway_transaction_id!: string | null;
 
   @Column({ length: 100 })

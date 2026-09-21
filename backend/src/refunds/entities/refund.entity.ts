@@ -68,7 +68,7 @@ export class Refund {
   @Column({ type: 'text', nullable: true })
   reason!: string | null;
 
-  @Column({ length: 200, nullable: true })
+  @Column({ type: 'varchar', length: 200, nullable: true })
   gateway_refund_id!: string | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
