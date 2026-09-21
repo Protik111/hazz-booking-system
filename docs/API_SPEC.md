@@ -1589,6 +1589,7 @@ Document:
 
 # 47. Frontend API Mapping
 
+
 ## Public
 
 ```text
