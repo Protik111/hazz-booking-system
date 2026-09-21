@@ -23,9 +23,11 @@ import { UpdatePackageDto } from './dto/update-package.dto';
 import { CreateTierDto } from './dto/create-tier.dto';
 import { UpdateTierDto } from './dto/update-tier.dto';
 import { UpdateTierQuotaDto } from './dto/update-tier-quota.dto';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
 // ─── Public Package Routes ────────────────────────────────────────────────────
 
+@ApiTags('Packages')
 @Public()
 @Controller('packages')
 export class PackagesController {
@@ -44,6 +46,8 @@ export class PackagesController {
 
 // ─── Admin Package Routes ─────────────────────────────────────────────────────
 
+@ApiTags('Admin Packages')
+@ApiBearerAuth('JWT-auth')
 @UseGuards(RolesGuard)
 @Roles(UserRole.ADMIN)
 @Controller('admin')

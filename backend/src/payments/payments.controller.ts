@@ -9,6 +9,7 @@ import {
   Post,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
@@ -25,14 +26,24 @@ import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { UserRole } from '../user/enums/user-role.enum';
+import { IdempotencyInterceptor } from '../common/interceptors/idempotency.interceptor';
+import { ApiTags, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 
 // ─── User Payments Controller: /api/v1/payments ─────────────────────────────
 
+@ApiTags('Payments')
+@ApiBearerAuth('JWT-auth')
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
   @Post()
+  @UseInterceptors(IdempotencyInterceptor)
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique client-generated key to prevent duplicate payment initiation',
+    required: false,
+  })
   @HttpCode(HttpStatus.CREATED)
   async initiate(
     @CurrentUser('userId') userId: string,
@@ -62,6 +73,7 @@ export class PaymentsController {
 
 // ─── Mock Payment Gateway Controller: /api/v1/mock-payments ───────────────────
 
+@ApiTags('Mock Payments')
 @Public()
 @Controller('mock-payments')
 export class MockPaymentsController {
@@ -97,6 +109,7 @@ export class MockPaymentsController {
 
 // ─── Gateway Webhooks Controller: /api/v1/webhooks ────────────────────────────
 
+@ApiTags('Webhooks')
 @Public()
 @Controller('webhooks')
 export class WebhooksController {
@@ -221,7 +234,8 @@ export class WebhooksController {
 }
 
 // ─── Admin Payments Controller: /api/v1/admin/manual-payments & reconciliation
-
+@ApiTags('Admin Payments')
+@ApiBearerAuth('JWT-auth')
 @UseGuards(RolesGuard)
 @Roles(UserRole.ADMIN)
 @Controller('admin')

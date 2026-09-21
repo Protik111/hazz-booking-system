@@ -10,6 +10,7 @@ import {
   Post,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -21,12 +22,22 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { UserRole } from '../user/enums/user-role.enum';
+import { IdempotencyInterceptor } from '../common/interceptors/idempotency.interceptor';
+import { ApiTags, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 
+@ApiTags('Bookings')
+@ApiBearerAuth('JWT-auth')
 @Controller('bookings')
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
   @Post()
+  @UseInterceptors(IdempotencyInterceptor)
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique client-generated key to prevent duplicate booking creation',
+    required: false,
+  })
   @HttpCode(HttpStatus.CREATED)
   async create(
     @CurrentUser('userId') userId: string,
@@ -142,6 +153,8 @@ export class BookingsController {
 
 // ─── Standalone Installment Route: GET /api/v1/installments/:id ───────────────
 
+@ApiTags('Installments')
+@ApiBearerAuth('JWT-auth')
 @Controller('installments')
 export class InstallmentsController {
   constructor(private readonly bookingsService: BookingsService) {}
@@ -158,6 +171,8 @@ export class InstallmentsController {
 
 // ─── Admin Bookings Controller: GET /api/v1/admin/bookings ───────────────────
 
+@ApiTags('Admin Bookings')
+@ApiBearerAuth('JWT-auth')
 @UseGuards(RolesGuard)
 @Roles(UserRole.ADMIN)
 @Controller('admin')
