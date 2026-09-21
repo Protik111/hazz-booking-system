@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { PackagesModule } from './packages/packages.module';
 import { BookingsModule } from './bookings/bookings.module';
+import { PilgrimsModule } from './pilgrims/pilgrims.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { BookingsModule } from './bookings/bookings.module';
     UserModule,
     PackagesModule,
     BookingsModule,
+    PilgrimsModule,
   ],
   controllers: [HealthController],
 })
