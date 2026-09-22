@@ -101,7 +101,7 @@ export default function AdminManualPaymentsPage() {
           options={[
             { value: "", label: "All statuses" },
             { value: "PENDING_APPROVAL", label: "Pending approval" },
-            { value: "APPROVED", label: "Approved" },
+            { value: "SUCCESS", label: "Approved" },
             { value: "REJECTED", label: "Rejected" },
           ]}
           placeholder="All statuses"
