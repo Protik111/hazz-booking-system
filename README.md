@@ -35,20 +35,30 @@ live at the bottom of this file in [Design answers](#design-answers).
 The backend ships with a seeder that creates two demo accounts. After the
 stack is up, run the seeder once and sign in with the credentials below.
 
-The seed command — works whether or not you have `make` installed:
+Pick whichever seed command matches how you started the stack. Docker is the
+only prerequisite; `make` and `./scripts/dev` are optional shortcuts.
+
+### Option A — Raw `docker compose` (recommended, lowest-friction)
+
+Works whether or not you have `make` installed:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml exec backend npm run seed
 ```
 
-Equivalent shortcuts if you have `make` or `./scripts/dev`:
+### Option B — `./scripts/dev` (bash helper, no `make`)
 
 ```bash
-make seed              # Make
-./scripts/dev seed     # bash helper
+./scripts/dev seed
 ```
 
-And if you went with Option D (no Docker):
+### Option C — Make
+
+```bash
+make seed
+```
+
+### Option D — No Docker (host-side seeder)
 
 ```bash
 cd backend && npm run seed
