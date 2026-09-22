@@ -178,18 +178,23 @@ Works on any POSIX shell with Docker installed.
 
 ### Option E — Run without Docker
 
-Requires a local Postgres 16 + Redis 7 reachable on `localhost`:
+Requires a local Postgres 16 + Redis 7 reachable on `localhost`.
+
+The repo only ships `*.env.example` and `*.env.docker` — neither is loaded
+when you run the API on the host. Copy the example file to a real `.env`
+and adjust if your local Postgres/Redis live elsewhere:
 
 ```bash
 # backend
 cd backend
+cp .env.example .env          # only needed for the no-Docker path
 npm install
 npm run start:dev
 
 # frontend (in another terminal)
 cd ../frontend
 npm install
-echo "NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api/v1" > .env.local
+cp .env.example .env.local    # NEXT_PUBLIC_API_BASE_URL → http://localhost:3001/api/v1
 npm run dev
 ```
 

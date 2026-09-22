@@ -1,0 +1,26 @@
+# compiled output
+dist/
+/dist
+
+# dependencies
+node_modules/
+/node_modules
+
+# env files — only .env.example and .env.docker are tracked
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# tests
+/coverage
