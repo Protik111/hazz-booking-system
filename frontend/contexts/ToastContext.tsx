@@ -1,64 +1,83 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
-import { ToastViewport, type ToastData, type ToastTone } from "@/components/ui/Toast";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { Toaster, toast } from "sonner";
 
-interface ShowToastInput {
+export type ToastTone = "success" | "error" | "info" | "warning";
+
+interface ToastInput {
   title: string;
   description?: string;
+  /** Auto-dismiss after this many ms. Defaults are handled by sonner. */
   durationMs?: number;
 }
 
 interface ToastContextValue {
-  show: (tone: ToastTone, input: ShowToastInput) => void;
-  success: (input: ShowToastInput) => void;
-  error: (input: ShowToastInput) => void;
-  info: (input: ShowToastInput) => void;
-  dismiss: (id: string) => void;
+  success: (input: ToastInput) => void;
+  error: (input: ToastInput) => void;
+  info: (input: ToastInput) => void;
+  warning: (input: ToastInput) => void;
+  dismiss: (id?: string) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
+/** Sonner accepts a title and a description as separate args. */
+function fire(tone: ToastTone, { title, description, durationMs }: ToastInput) {
+  const options = description
+    ? { description, duration: durationMs }
+    : { duration: durationMs };
+  switch (tone) {
+    case "success":
+      toast.success(title, options);
+      break;
+    case "error":
+      toast.error(title, options);
+      break;
+    case "info":
+      toast.info(title, options);
+      break;
+    case "warning":
+      toast.warning(title, options);
+      break;
+  }
+}
+
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<ToastData[]>([]);
-
-  const dismiss = useCallback((id: string) => {
-    setToasts((curr) => curr.filter((t) => t.id !== id));
-  }, []);
-
-  const show = useCallback(
-    (tone: ToastTone, input: ShowToastInput) => {
-      const id =
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-      setToasts((curr) => [...curr, { id, tone, ...input }]);
-    },
-    [],
-  );
-
   const value = useMemo<ToastContextValue>(
     () => ({
-      show,
-      success: (input) => show("success", input),
-      error: (input) => show("error", input),
-      info: (input) => show("info", input),
-      dismiss,
+      success: (input) => fire("success", input),
+      error: (input) => fire("error", input),
+      info: (input) => fire("info", input),
+      warning: (input) => fire("warning", input),
+      dismiss: (id) => toast.dismiss(id),
     }),
-    [show, dismiss],
+    [],
   );
 
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <ToastViewport toasts={toasts} onDismiss={dismiss} />
+      {/* shadcn-recommended Toaster config: top-right stack, system colors,
+          no expand button, matches our theme tokens. */}
+      <Toaster
+        position="top-right"
+        richColors
+        closeButton
+        expand
+        theme="system"
+        toastOptions={{
+          classNames: {
+            toast:
+              "group toast group-[.toaster]:bg-card group-[.toaster]:text-text group-[.toaster]:border-border group-[.toaster]:shadow-card",
+            description: "group-[.toast]:text-text-muted",
+            actionButton:
+              "group-[.toast]:bg-emerald group-[.toast]:text-white",
+            cancelButton:
+              "group-[.toast]:bg-base group-[.toast]:text-text-muted",
+          },
+        }}
+      />
     </ToastContext.Provider>
   );
 }
