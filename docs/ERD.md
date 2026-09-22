@@ -1,7 +1,7 @@
 # Database ERD — Hajj & Umrah Booking System
 
-This ERD covers every table defined in `docs/DATABASE_SCHEMA.md` and used by
-the NestJS backend under `backend/src/`.
+This ERD covers every table used by the NestJS backend under `backend/src/`
+(mirroring the entities defined in each `*.entity.ts` file).
 
 There are two renderings of the same schema:
 
@@ -364,8 +364,9 @@ erDiagram
 
 ## Invariants (must always hold)
 
-These are restated from `PROJECT_CONTEXT.md` §11 so they are visible alongside
-the diagram:
+These are the non-negotiable database invariants. They are enforced both at
+the application layer (in the corresponding `*.service.ts`) and would be
+backed by `CHECK` constraints in production:
 
 - `package_tiers.held_seats + package_tiers.confirmed_seats ≤ package_tiers.total_quota`
 - `package_tiers.total_quota ≥ committed_seats`

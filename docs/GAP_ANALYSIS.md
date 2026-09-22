@@ -1,10 +1,9 @@
 # Gap Analysis — Assessment vs. Implementation
 
 Date: 2026-09-22
-Scope: comparison of the `Assessment for Full-Stack Developer.docx` requirements
-and the three spec docs (`PROJECT_CONTEXT.md`, `API_SPEC.md`, `DATABASE_SCHEMA.md`)
-against what is actually committed under `backend/`, `frontend/`, `docs/` and the
-project root.
+Scope: comparison of the assessment brief requirements against what is
+actually committed under `backend/`, `frontend/`, `docs/` and the project
+root.
 
 Legend for severity:
 
@@ -86,7 +85,7 @@ No gaps detected here.
 
 `backend/src/report/*` and `frontend/app/admin/reports/page.tsx` implement
 the overview dashboard plus the bookings/payments/installments/refunds/seat-quota
-reports listed in `API_SPEC.md` §26.
+reports described in the brief.
 
 ### 2.5 Documentation
 
@@ -115,13 +114,14 @@ The brief says:
 > Database Entity-Relationship Diagram (ERD) illustrating the database
 > structure.
 
-`docs/DATABASE_SCHEMA.md` is a textual schema; it is not a diagram. **Action:**
-add `docs/ERD.md` containing a Mermaid `erDiagram` of every entity defined in
-`DATABASE_SCHEMA.md` (users, packages, package_tiers, bookings, pilgrims,
-installments, payments, payment_allocations, payment_webhook_events,
-reconciliation_records, cancellation_requests, refunds, vendors,
-vendor_expenses, inventory_items, inventory_transactions, audit_logs,
-booking_status_history). Render in GitHub.
+No ERD existed in the repo at the time this gap analysis was written.
+**Action taken:** `docs/ERD.md` was added with a Mermaid `erDiagram` covering
+every entity in `backend/src/<module>/entities/*.entity.ts` (users, packages,
+package_tiers, bookings, pilgrims, installments, payments, payment_allocations,
+payment_webhook_events, reconciliation_records, cancellation_requests,
+refunds, vendors, vendor_expenses, inventory_items, inventory_transactions,
+audit_logs, booking_status_history). A high-resolution PlantUML rendering
+(`docs/ERD.puml` → `docs/erd.png`/`docs/erd.svg`) was also added.
 
 ### 3.3 README design Q&A — **MISSING (P0)**
 
@@ -143,7 +143,7 @@ each, and link to `docs/ARCHITECTURE.md` for the full explanation.
 | ------------------------------------------------------------ | ------ | -------- | ----- |
 | Setup prerequisites (Node 20+, Docker, ports)                | partial | P1      | Mention in `README.md` only mentions Docker and `npm install`; no explicit Node version or which ports must be free. |
 | Sample `.env.example` for backend and frontend               | check  | P1      | `backend/.env.docker` exists but there is no `.env.example` checked into git to show reviewers what to set if they run without Docker. |
-| Assumptions and trade-offs                                   | missing | P1      | `PROJECT_CONTEXT.md` documents business rules but not implementation trade-offs. Add a short "Assumptions & trade-offs" block in `README.md`. |
+| Assumptions and trade-offs                                   | missing | P1      | No prior business-rules brief survives in the repo. Add a short "Assumptions & trade-offs" block in `README.md`. |
 | Postman / curl collection                                   | missing | P2      | Helpful but not required. Optional deliverable. |
 | "How to run individual modules" walkthrough                  | missing | P2      | The `MANUAL_TESTING_GUIDE.md` already exists for this; verify it is referenced from README. |
 
@@ -202,7 +202,8 @@ No rule from the brief was found to be obviously missing.
 ### P2 (only if time)
 
 8. Add a Postman collection under `docs/postman/` covering the critical
-   end-to-end flow listed in `API_SPEC.md` §50.
+   end-to-end flow (register → login → browse → book → add pilgrims → pay →
+   webhook → confirm).
 9. Add a `docs/RUNBOOK.md` for the production-ish deploy path (Postgres
    read replica, Redis cache, scheduler worker).
 

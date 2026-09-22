@@ -15,16 +15,13 @@ The brief asks for diagrams and setup documentation in the repository. They
 live in their own files so each can render at full size, be deep-linked, and
 be edited without merge conflicts in the README.
 
-| What                          | Where                                                                |
-| ----------------------------- | -------------------------------------------------------------------- |
-| High-level system diagram     | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)                       |
-| Database ERD (PlantUML, hi-res) | [`docs/erd.png`](docs/erd.png) · [`docs/ERD.puml`](docs/ERD.puml) (source) |
-| Database ERD (Mermaid, inline)  | [`docs/ERD.md`](docs/ERD.md)                                      |
-| Full REST API contract        | [`docs/API_SPEC.md`](docs/API_SPEC.md)                               |
-| Database schema reference     | [`docs/DATABASE_SCHEMA.md`](docs/DATABASE_SCHEMA.md)                 |
-| Gap analysis & design Q&A     | [`docs/GAP_ANALYSIS.md`](docs/GAP_ANALYSIS.md)                       |
-| Original business-rules brief | [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md)                 |
-| Manual end-to-end testing     | [`MANUAL_TESTING_GUIDE.md`](MANUAL_TESTING_GUIDE.md)                 |
+| What                              | Where                                                                |
+| --------------------------------- | -------------------------------------------------------------------- |
+| **High-level system diagram**     | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)                       |
+| **Database ERD** (PlantUML, hi-res) | [`docs/erd.png`](docs/erd.png) · [`docs/erd.svg`](docs/erd.svg) (renders) · [`docs/ERD.puml`](docs/ERD.puml) (source) |
+| **Database ERD** (Mermaid, inline) | [`docs/ERD.md`](docs/ERD.md)                                         |
+| **Gap analysis & design Q&A**     | [`docs/GAP_ANALYSIS.md`](docs/GAP_ANALYSIS.md)                       |
+| **Manual end-to-end testing**     | [`MANUAL_TESTING_GUIDE.md`](MANUAL_TESTING_GUIDE.md)                  |
 
 ![Database ERD — high resolution](docs/erd.png)
 
