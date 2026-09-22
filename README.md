@@ -9,14 +9,78 @@ reconciliation tooling.
 
 ---
 
-## Quick start with Docker (recommended)
+## Quick start with Docker
 
-A single `docker compose up` boots the entire stack — postgres, redis, backend, and
-frontend — in containers.
+A single `docker compose up` boots the entire stack — postgres, redis, backend,
+and frontend — in containers.
+
+There are two stacks you can run:
+
+- **`make dev`** — development stack with **hot reload** for both backend and
+  frontend. Edits to source on the host are picked up live; no rebuild needed.
+  This is what you want for everyday work.
+- **`make prod`** — production stack: multi-stage images, compiled `dist/` and
+  Next.js standalone server. Closest to what runs in production.
+
+### Development workflow (recommended for coding)
 
 ```bash
 # from the repo root
-docker compose up -d --build
+make dev          # foreground — streams logs from all services
+make dev-build    # rebuild images after changing package.json / Dockerfile
+make logs         # tail backend + frontend logs (in another terminal)
+make dev-down     # stop the dev stack
+```
+
+`make dev` is a thin wrapper around:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+```
+
+The override file (`docker-compose.dev.yml`) layers the following on top of the
+base stack:
+
+- Builds the lightweight `dev` stage of `backend/Dockerfile` (all deps, no TS
+  compile) and the `deps` stage of `frontend/Dockerfile` (already has everything
+  Next.js needs) instead of the slow multi-stage production images.
+- Bind-mounts your local source (`backend/src/`, `frontend/app/`, `components/`,
+  `lib/`, `hooks/`, `contexts/`, `public/`) and the relevant config files into
+  the running containers.
+- Overrides the container `command` to `npm run start:dev` (backend) and
+  `npm run dev` (frontend), so `nest start --watch` and `next dev` pick up your
+  edits and reload automatically.
+- Protects the container's `node_modules` (and the frontend's `.next/`) with
+  anonymous volumes so a host bind-mount doesn't shadow them. **You don't need
+  to run `npm install` on the host** — the container owns its own modules.
+
+You only need to run `make dev-build` when **dependencies change** (i.e. you
+edited `package.json` or a `Dockerfile`). Pure code edits never require a
+rebuild.
+
+#### Useful dev targets
+
+```bash
+make help              # show every available target
+make logs              # tail backend + frontend logs together
+make logs-backend      # tail backend only
+make logs-frontend     # tail frontend only
+make shell-backend     # open a shell in the backend container
+make shell-frontend    # open a shell in the frontend container
+make shell-postgres    # open psql against the dev database
+make ps                # list running containers
+make restart           # restart app containers without dropping the DB
+make rebuild-deps      # nuke and rebuild images from scratch (no cache)
+```
+
+### Production stack (what `docker compose up` does by default)
+
+If you don't use `make`, plain `docker compose up` runs the **production**
+stack. Use this when you want to validate a release build locally.
+
+```bash
+# from the repo root
+docker compose up -d --build    # or: make prod
 ```
 
 Once everything is healthy (`docker compose ps`), the four URLs are:
@@ -90,7 +154,9 @@ npm run dev
 │   ├── contexts/          # AuthContext
 │   ├── Dockerfile
 │   └── .env.docker
-└── docker-compose.yml     # full stack: postgres + redis + backend + frontend
+├── docker-compose.yml     # full stack: postgres + redis + backend + frontend
+├── docker-compose.dev.yml # dev override — bind mounts, hot reload (used by `make dev`)
+└── Makefile               # convenience targets: `make dev`, `make prod`, `make logs`, …
 ```
 
 The complete API contract lives in `docs/API_SPEC.md`.

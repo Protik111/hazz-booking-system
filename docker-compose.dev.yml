@@ -1,0 +1,88 @@
+# ─────────────────────────────────────────────────────────────────────
+# Development override for docker-compose.yml.
+#
+# Apply it on top of the base compose file:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# What this does:
+#   • Builds the lightweight `dev` stage (no TS compile) instead of the
+#     multi-stage production image, so `up` finishes in seconds instead of
+#     running `nest build` every time.
+#   • Bind-mounts your local source so any code change is picked up by the
+#     running container immediately — no `docker compose build` required.
+#   • Runs the dev scripts (`nest start --watch` / `next dev`) which watch
+#     the filesystem and reload on save.
+#
+# Bind-mount caveats:
+#   • Source is mounted `rw`. Edits made INSIDE the container show up on
+#     your host (handy for debugging in-container).
+#   • A named empty volume on `/app/node_modules` prevents the container's
+#     installed `node_modules` from being shadowed by the (empty) host path.
+#   • Config files (tsconfig, nest-cli.json, next.config.ts, postcss.config…)
+#     are individually mounted because `nest start` / `next dev` need them
+#     at well-known paths inside `/app`.
+#
+# Production builds are unaffected — just run `docker compose up` without
+# this override.
+# ─────────────────────────────────────────────────────────────────────
+
+services:
+  backend:
+    # Build the `dev` stage instead of `runner`. `dev` installs all deps
+    # (including @nestjs/cli) but skips the production `npm run build`.
+    build:
+      target: dev
+    # Bypass the runner image's `CMD ["node", "dist/main"]` — instead run
+    # the dev script which uses `tsc --watch` and reloads on save.
+    command: npm run start:dev
+    environment:
+      NODE_ENV: development
+    volumes:
+      # Source of truth: live host edits drive the container.
+      - ./backend/src:/app/src:rw
+      # Config files the dev scripts / tsc / nest-cli need.
+      - ./backend/tsconfig.json:/app/tsconfig.json:ro
+      - ./backend/tsconfig.build.json:/app/tsconfig.build.json:ro
+      - ./backend/nest-cli.json:/app/nest-cli.json:ro
+      - ./backend/.env.docker:/app/.env.docker:ro
+      # Protect container-installed deps from a host that may not have run
+      # `npm install` locally.
+      - backend_node_modules:/app/node_modules
+
+  frontend:
+    # `deps` stage is enough — it already has all dependencies installed.
+    build:
+      target: deps
+    command: npm run dev
+    environment:
+      NODE_ENV: development
+    ports:
+      # Keep the published port; `next dev` honours HOST/PORT and reads 3000.
+      - "3000:3000"
+    volumes:
+      # Live source: app/, components/, lib/, hooks/, contexts/, public/.
+      - ./frontend/app:/app/app:rw
+      - ./frontend/components:/app/components:rw
+      - ./frontend/lib:/app/lib:rw
+      - ./frontend/hooks:/app/hooks:rw
+      - ./frontend/contexts:/app/contexts:rw
+      - ./frontend/public:/app/public:rw
+      # TypeScript / Next / PostCSS / shadcn configs needed by `next dev`.
+      - ./frontend/package.json:/app/package.json:ro
+      - ./frontend/next.config.ts:/app/next.config.ts:ro
+      - ./frontend/tsconfig.json:/app/tsconfig.json:ro
+      - ./frontend/postcss.config.mjs:/app/postcss.config.mjs:ro
+      - ./frontend/components.json:/app/components.json:ro
+      - ./frontend/eslint.config.mjs:/app/eslint.config.mjs:ro
+      - ./frontend/.env.docker:/app/.env.docker:ro
+      # `next dev` writes a lot into `.next/`. Isolate it from the host so
+      # the host directory doesn't fill up with build artefacts and the
+      # container's view stays consistent across restarts.
+      - frontend_next:/app/.next
+      # Preserve the container's `node_modules`.
+      - frontend_node_modules:/app/node_modules
+
+volumes:
+  backend_node_modules:
+  frontend_node_modules:
+  frontend_next:

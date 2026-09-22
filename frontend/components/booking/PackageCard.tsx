@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { PublicPackage } from "@/lib/api/normalize";
+import { formatDate } from "@/lib/format";
 import StatusBadge from "./StatusBadge";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -14,16 +15,41 @@ interface PackageCardProps {
   className?: string;
 }
 
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 function formatCurrency(n: number) {
   return `৳${n.toLocaleString("en-BD")}`;
+}
+
+/**
+ * Derive the booking-window state from the package's booking_start /
+ * booking_end ISO timestamps. Mirrors the server-side check in
+ * `BookingsService.create` so the UI stays honest with the backend:
+ *   - now < booking_start → "WINDOW_UPCOMING"
+ *   - now > booking_end   → "WINDOW_CLOSED"
+ *   - otherwise           → "WINDOW_OPEN"
+ *
+ * Returns null when the package isn't intended to be bookable (DRAFT /
+ * CLOSED) — in those cases the status badge already communicates why.
+ */
+function deriveWindowState(pkg: PublicPackage): {
+  status: "WINDOW_OPEN" | "WINDOW_UPCOMING" | "WINDOW_CLOSED";
+  label?: string;
+} | null {
+  if (pkg.status === "DRAFT" || pkg.status === "CLOSED") return null;
+
+  const start = pkg.bookingStart ? new Date(pkg.bookingStart) : null;
+  const end = pkg.bookingEnd ? new Date(pkg.bookingEnd) : null;
+  const now = new Date();
+
+  if (start && !Number.isNaN(start.getTime()) && now < start) {
+    return {
+      status: "WINDOW_UPCOMING",
+      label: `Opens ${formatDate(pkg.bookingStart)}`,
+    };
+  }
+  if (end && !Number.isNaN(end.getTime()) && now > end) {
+    return { status: "WINDOW_CLOSED" };
+  }
+  return { status: "WINDOW_OPEN" };
 }
 
 export default function PackageCard({ pkg, className }: PackageCardProps) {
@@ -36,6 +62,8 @@ export default function PackageCard({ pkg, className }: PackageCardProps) {
     0,
   );
 
+  const window = deriveWindowState(pkg);
+
   return (
     <Link
       href={`/packages/${pkg.id}`}
@@ -44,11 +72,12 @@ export default function PackageCard({ pkg, className }: PackageCardProps) {
         (className ?? "")
       }
     >
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-pill border border-emerald/30 bg-emerald/10 px-2.5 py-0.5 text-meta font-semibold text-emerald">
           {TYPE_LABELS[pkg.type] ?? pkg.type}
         </span>
         <StatusBadge status={pkg.status} />
+        {window && <StatusBadge status={window.status} label={window.label} />}
       </div>
 
       <h3 className="text-card-title font-semibold text-text group-hover:text-emerald transition-colors line-clamp-2">

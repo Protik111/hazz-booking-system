@@ -27,6 +27,9 @@ type AnyStatus =
   | "ACTIVE"
   | "INACTIVE"
   | "SUSPENDED"
+  | "WINDOW_OPEN"
+  | "WINDOW_UPCOMING"
+  | "WINDOW_CLOSED"
   | string;
 
 const STATUS_STYLES: Record<string, string> = {
@@ -64,6 +67,10 @@ const STATUS_STYLES: Record<string, string> = {
   ACTIVE: "bg-success-bg text-success border-success/30",
   INACTIVE: "bg-base text-text-subtle border-border-strong",
   SUSPENDED: "bg-danger-bg text-danger border-danger/30",
+  // Booking window (derived from package.booking_start / booking_end)
+  WINDOW_OPEN: "bg-success-bg text-success border-success/30",
+  WINDOW_UPCOMING: "bg-warning-bg text-warning border-warning/30",
+  WINDOW_CLOSED: "bg-danger-bg text-danger border-danger/30",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -93,17 +100,22 @@ const STATUS_LABELS: Record<string, string> = {
   ACTIVE: "Active",
   INACTIVE: "Inactive",
   SUSPENDED: "Suspended",
+  WINDOW_OPEN: "Booking open",
+  WINDOW_UPCOMING: "Opens soon",
+  WINDOW_CLOSED: "Window closed",
 };
 
 interface StatusBadgeProps {
   status: AnyStatus;
+  /** Optional override for the displayed text. Falls back to STATUS_LABELS lookup. */
+  label?: string;
   className?: string;
 }
 
-export default function StatusBadge({ status, className }: StatusBadgeProps) {
+export default function StatusBadge({ status, label, className }: StatusBadgeProps) {
   const style =
     STATUS_STYLES[status] ?? "bg-base text-text-subtle border-border-strong";
-  const label = STATUS_LABELS[status] ?? status;
+  const text = label ?? STATUS_LABELS[status] ?? status;
 
   return (
     <span
@@ -113,7 +125,7 @@ export default function StatusBadge({ status, className }: StatusBadgeProps) {
         className,
       )}
     >
-      {label}
+      {text}
     </span>
   );
 }

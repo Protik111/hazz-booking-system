@@ -9,6 +9,19 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 # ─────────────────────────────────────────────────────────────
+# Stage 1.5 – dev: install ALL dependencies (incl. dev) for local dev
+# ─────────────────────────────────────────────────────────────
+FROM node:22-alpine AS dev
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+# Source is bind-mounted at runtime by docker-compose.dev.yml, so we
+# deliberately do NOT COPY . . here.
+
+# ─────────────────────────────────────────────────────────────
 # Stage 2 – builder: compile TypeScript
 # ─────────────────────────────────────────────────────────────
 FROM node:22-alpine AS builder
