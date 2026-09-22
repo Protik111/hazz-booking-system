@@ -11,6 +11,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { UserService } from '../user/user.service';
 import { LoginUserDto } from '../user/dto/login-user.dto';
@@ -30,7 +31,11 @@ export class AuthController {
     private readonly userService: UserService,
   ) {}
 
+  // Tighten the per-IP limit on auth endpoints to deter credential-stuffing
+  // and account-enumeration attacks. Bucket `auth` is defined in
+  // common/throttler/throttler.module.ts (5 req / 60s per IP).
   @Public()
+  @Throttle({ auth: { limit: 3, ttl: 60_000 } })
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() registerDto: RegisterDto) {
@@ -38,6 +43,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ auth: { limit: 5, ttl: 60_000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
@@ -74,6 +80,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ auth: { limit: 10, ttl: 60_000 } })
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(

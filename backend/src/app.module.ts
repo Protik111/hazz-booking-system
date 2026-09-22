@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { getDatabaseConfig } from './config/database.config';
 import { HealthController } from './health.controller';
 import { AuthModule } from './auth/auth.module';
@@ -18,6 +20,8 @@ import { InventoryModule } from './inventory/inventory.module';
 import { AuditModule } from './audit/audit.module';
 import { ReportModule } from './report/report.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
+import { RedisModule } from './common/redis/redis.module';
+import { ThrottlerModule } from './common/throttler/throttler.module';
 
 @Module({
   imports: [
@@ -28,6 +32,8 @@ import { SchedulerModule } from './scheduler/scheduler.module';
       inject: [ConfigService],
     }),
     EventEmitterModule.forRoot({ global: true }),
+    RedisModule,
+    ThrottlerModule,
     AuthModule,
     UserModule,
     PackagesModule,
@@ -44,5 +50,14 @@ import { SchedulerModule } from './scheduler/scheduler.module';
     SchedulerModule,
   ],
   controllers: [HealthController],
+  providers: [
+    {
+      // Apply the named Throttler buckets (`short`, `auth`) defined on
+      // individual endpoints. The guard runs after the JwtAuthGuard, so
+      // unauthenticated traffic is still limited by IP.
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

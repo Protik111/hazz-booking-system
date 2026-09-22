@@ -30,6 +30,57 @@ live at the bottom of this file in [Design answers](#design-answers).
 
 ---
 
+## What's in the stack
+
+| Concern                | Tech                                               |
+| ---------------------- | -------------------------------------------------- |
+| Frontend               | Next.js 16 (App Router) + React 19 + Tailwind v4   |
+| Backend                | NestJS 11 + TypeORM + class-validator              |
+| Database               | PostgreSQL 16                                      |
+| Cache / rate limiting  | Redis 7 (see below)                                |
+| Auth                   | JWT in HTTP-only cookies, role guards, ownership checks |
+| Payments               | Mock gateway (production adapters plug into the same `PaymentsService`) |
+| Scheduled jobs         | `@nestjs/schedule` cron jobs in-process            |
+| Container orchestration | Docker Compose (production-ready, no Kubernetes)  |
+
+### Why Redis is here
+
+Redis backs one concrete concern: **distributed rate limiting** on the auth
+endpoints. Without it, the per-IP limiter would be per-replica — on a
+4-replica NestJS deployment the effective limit would be 4× the configured
+one. Redis gives the limiter a shared counter so the limit is real even
+when the API is horizontally scaled.
+
+Limits (per IP, configurable in `backend/src/common/throttler/throttler.module.ts`):
+
+| Bucket | Limit          | Applied to                            |
+| ------ | -------------- | ------------------------------------- |
+| `auth` | 5 req / minute | `POST /auth/login`                    |
+| `auth` | 3 req / minute | `POST /auth/register`                 |
+| `auth` | 10 req / minute| `POST /auth/refresh`                  |
+
+Anything else (booking flow, packages browse, reports) is **not** rate-limited
+yet; if a reviewer is testing rapidly through the same IP they will not hit
+a 429 except on the three endpoints above. Postgres remains the source of
+truth for everything that touches money — Redis is only ever a side-channel
+that can be lost without losing data.
+
+To verify the rate limit manually:
+
+```bash
+# Boot the stack first, then:
+for i in 1 2 3 4 5 6; do
+  curl -s -o /dev/null -w "try $i: HTTP %{http_code}\n" \
+    -X POST http://localhost:3001/api/v1/auth/login \
+    -H 'Content-Type: application/json' \
+    -d '{"email":"wrong@example.com","password":"wrong"}'
+done
+# try 1–5: HTTP 401   (bad credentials)
+# try 6:    HTTP 429   (Too Many Requests)
+```
+
+---
+
 ## Quick start
 
 **Docker is the only prerequisite.** `make` and `./scripts/dev` are optional
