@@ -27,19 +27,51 @@ interface RequestOptions {
   query?: Record<string, string | number | boolean | undefined>;
   /** Extra headers to merge in (e.g. Idempotency-Key). */
   headers?: Record<string, string>;
+  /** When true, skip the auto-refresh-on-401 retry. Used by /auth/refresh
+   *  itself so it can't recurse if the refresh token is also expired. */
+  skipRefresh?: boolean;
 }
 
 /**
- * Thin fetch wrapper for the Hajj & Umrah Booking API.
- * – Uses `credentials: "include"` so the browser sends the HttpOnly
- *   JWT cookie set by POST /auth/login automatically.
- * – Throws a typed `ApiError` for any non-2xx response so callers can
- *   `catch (e) { if (e instanceof ApiError) ... }`.
+ * Notifies the AuthContext (if mounted) that the session can no longer be
+ * extended. Kept as a noop default so the API client has no hard dependency
+ * on React context — `AuthProvider` overrides it at mount time.
  */
-export async function apiRequest<T>(
+let onSessionExpired: (() => void) | null = null;
+export function setSessionExpiredHandler(fn: (() => void) | null) {
+  onSessionExpired = fn;
+}
+
+/**
+ * Coalesces concurrent 401s so we only call /auth/refresh once even if
+ * many in-flight requests expire at the same time.
+ */
+let refreshInflight: Promise<boolean> | null = null;
+
+async function tryRefreshAccessToken(): Promise<boolean> {
+  if (refreshInflight) return refreshInflight;
+  refreshInflight = (async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+      return res.ok;
+    } catch {
+      return false;
+    } finally {
+      // Allow the next 401 to start a fresh refresh attempt.
+      refreshInflight = null;
+    }
+  })();
+  return refreshInflight;
+}
+
+async function runFetch(
   path: string,
-  { method = "GET", body, query, headers: extraHeaders = {} }: RequestOptions = {},
-): Promise<T> {
+  options: RequestOptions,
+): Promise<Response> {
   let url: URL;
   try {
     url = new URL(`${API_BASE_URL}${path}`);
@@ -50,24 +82,24 @@ export async function apiRequest<T>(
     });
   }
 
-  if (query) {
-    for (const [key, value] of Object.entries(query)) {
+  if (options.query) {
+    for (const [key, value] of Object.entries(options.query)) {
       if (value !== undefined) url.searchParams.set(key, String(value));
     }
   }
 
   const headers: Record<string, string> = {
     Accept: "application/json",
-    ...extraHeaders,
+    ...options.headers,
   };
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (options.body !== undefined) headers["Content-Type"] = "application/json";
 
   let response: Response;
   try {
     response = await fetch(url, {
-      method,
+      method: options.method ?? "GET",
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
       // Sends the HttpOnly auth cookie and accepts Set-Cookie from the server.
       credentials: "include",
     });
@@ -78,12 +110,15 @@ export async function apiRequest<T>(
     });
   }
 
-  if (response.status === 204) return undefined as T;
+  return response;
+}
 
+async function readBody(response: Response): Promise<unknown> {
+  if (response.status === 204) return undefined;
   const text = await response.text();
-  let data: unknown;
+  if (!text) return undefined;
   try {
-    data = text ? JSON.parse(text) : undefined;
+    return JSON.parse(text);
   } catch {
     throw new ApiError(response.status || 0, {
       message: response.ok
@@ -92,6 +127,44 @@ export async function apiRequest<T>(
       code: "BAD_RESPONSE",
     });
   }
+}
+
+/**
+ * Thin fetch wrapper for the Hajj & Umrah Booking API.
+ * – Uses `credentials: "include"` so the browser sends the HttpOnly
+ *   JWT cookie set by POST /auth/login automatically.
+ * – On a 401 response, attempts a single silent refresh against
+ *   /auth/refresh (cookies travel automatically) and retries the
+ *   original request once. If the refresh also fails, the 401 is
+ *   surfaced and the auth context is asked to sign the user out.
+ * – Throws a typed `ApiError` for any non-2xx response so callers can
+ *   `catch (e) { if (e instanceof ApiError) ... }`.
+ */
+export async function apiRequest<T>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<T> {
+  const { skipRefresh, ...rest } = options;
+
+  let response = await runFetch(path, rest);
+
+  // Auto-refresh on 401 (browser-only — server-side renders don't have cookies).
+  if (
+    response.status === 401 &&
+    !skipRefresh &&
+    typeof window !== "undefined" &&
+    // Never try to refresh the refresh endpoint itself, login, or register.
+    !/^\/?(auth\/login|auth\/register|auth\/refresh)/.test(path)
+  ) {
+    const refreshed = await tryRefreshAccessToken();
+    if (refreshed) {
+      response = await runFetch(path, rest);
+    } else {
+      onSessionExpired?.();
+    }
+  }
+
+  const data = await readBody(response);
 
   if (!response.ok) {
     // The backend wraps errors as { success: false, error: { code, message } }

@@ -14,6 +14,8 @@ import {
   logout as apiLogout,
   register as apiRegister,
 } from "@/lib/api/endpoints";
+import { setSessionExpiredHandler } from "@/lib/api/client";
+import { useToast } from "@/contexts/ToastContext";
 import type { User } from "@/lib/api/normalize";
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
@@ -33,10 +35,30 @@ const AuthContext = createContext<AuthContextValue | null>(null);
  * POST /auth/login. We don't store the token ourselves — the browser sends
  * it automatically on every request thanks to `credentials: "include"` in
  * the API client. On mount we call GET /auth/me to restore the session.
+ *
+ * The API client silently refreshes expired access tokens via
+ * POST /auth/refresh on 401. If that refresh also fails, the client calls
+ * the handler registered below to flip us into the "unauthenticated" state
+ * and show a toast.
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [user, setUser] = useState<User | null>(null);
+  const toast = useToast();
+
+  // Stable handler so the API client can call us back when a silent refresh
+  // fails. Avoids importing React context into the client module.
+  useEffect(() => {
+    setSessionExpiredHandler(() => {
+      setUser(null);
+      setStatus("unauthenticated");
+      toast.info({
+        title: "Session expired",
+        description: "Please log in again to continue.",
+      });
+    });
+    return () => setSessionExpiredHandler(null);
+  }, [toast]);
 
   useEffect(() => {
     fetchMe()
