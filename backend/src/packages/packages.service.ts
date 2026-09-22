@@ -197,15 +197,24 @@ export class PackagesService {
     };
   }
 
-  async createPackage(dto: CreatePackageDto) {
-    const slug = this.generateSlug(dto.name);
-
-    const existing = await this.packageRepo.findOne({ where: { slug } });
-    if (existing) {
-      throw new BadRequestException(
-        `A package with slug "${slug}" already exists`,
-      );
+  /**
+   * Admin-only single-package lookup. Unlike `findOnePublic`, this does NOT
+   * filter by `status` so admins can see DRAFT/CLOSED/CANCELLED packages too.
+   * Powers the admin package edit page.
+   */
+  async findOneAdmin(id: string) {
+    const pkg = await this.packageRepo.findOne({
+      where: { id },
+      relations: ['tiers'],
+    });
+    if (!pkg) {
+      throw new NotFoundException('Package not found');
     }
+    return pkg;
+  }
+
+  async createPackage(dto: CreatePackageDto) {
+    const slug = await this.generateUniqueSlug(dto.name);
 
     const pkg = this.packageRepo.create({
       name: dto.name,
@@ -244,13 +253,7 @@ export class PackagesService {
     }
 
     if (dto.name && dto.name !== pkg.name) {
-      const newSlug = this.generateSlug(dto.name);
-      const conflict = await this.packageRepo.findOne({
-        where: { slug: newSlug },
-      });
-      if (conflict && conflict.id !== id) {
-        throw new BadRequestException(`Slug "${newSlug}" is already taken`);
-      }
+      const newSlug = await this.generateUniqueSlug(dto.name, id);
       pkg.slug = newSlug;
     }
 
@@ -352,13 +355,36 @@ export class PackagesService {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-  private generateSlug(name: string): string {
-    return name
+  /**
+   * Slugify a package name and guarantee uniqueness across the table —
+   * including soft-deleted rows, because the DB unique constraint covers
+   * every row regardless of `deleted_at`. If the base slug is taken, append
+   * `-2`, `-3`, … until free. `ignoreId` lets updates skip their own row.
+   */
+  private async generateUniqueSlug(
+    name: string,
+    ignoreId?: string,
+  ): Promise<string> {
+    const base = name
       .toLowerCase()
       .trim()
       .replace(/[^\w\s-]/g, '')
       .replace(/[\s_-]+/g, '-')
       .replace(/^-+|-+$/g, '');
+
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      const candidate = attempt === 0 ? base : `${base}-${attempt + 1}`;
+      const conflict = await this.packageRepo.findOne({
+        where: { slug: candidate },
+        withDeleted: true,
+      });
+      if (!conflict || conflict.id === ignoreId) {
+        return candidate;
+      }
+    }
+
+    // Fallback: random suffix. Should be effectively unreachable.
+    return `${base}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
   private toPublicResponse(pkg: Package) {

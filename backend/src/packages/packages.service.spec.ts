@@ -132,19 +132,55 @@ describe('PackagesService', () => {
       expect(mockPackageRepo.save).toHaveBeenCalled();
     });
 
-    it('should throw BadRequestException if slug is already in use', async () => {
-      mockPackageRepo.findOne.mockResolvedValue(mockPackage);
+    it('should auto-suffix slug when base slug is taken', async () => {
+      // First call: base slug is taken. Second call (with "-2" suffix) returns
+      // null so the helper returns the suffixed candidate.
+      mockPackageRepo.findOne
+        .mockResolvedValueOnce(mockPackage)
+        .mockResolvedValueOnce(null);
+      mockPackageRepo.create.mockReturnValue({ ...mockPackage });
+      mockPackageRepo.save.mockResolvedValue({
+        ...mockPackage,
+        slug: 'hajj-premium-2027-2',
+      });
 
-      await expect(
-        service.createPackage({
-          name: 'Hajj Premium 2027',
-          type: PackageType.HAJJ,
-          departure_date: '2027-05-20',
-          return_date: '2027-06-05',
-          booking_start: '2026-01-01T00:00:00Z',
-          booking_end: '2027-04-01T00:00:00Z',
-        }),
-      ).rejects.toThrow(BadRequestException);
+      const result = await service.createPackage({
+        name: 'Hajj Premium 2027',
+        type: PackageType.HAJJ,
+        departure_date: '2027-05-20',
+        return_date: '2027-06-05',
+        booking_start: '2026-01-01T00:00:00Z',
+        booking_end: '2027-04-01T00:00:00Z',
+      });
+
+      expect(result.slug).toBe('hajj-premium-2027-2');
+    });
+
+    it('should detect conflicts even against soft-deleted rows', async () => {
+      // The first candidate is held by a soft-deleted row, so the helper must
+      // skip it (withDeleted: true) and try the suffixed candidate instead.
+      mockPackageRepo.findOne
+        .mockResolvedValueOnce({ ...mockPackage, deleted_at: new Date() })
+        .mockResolvedValueOnce(null);
+      mockPackageRepo.create.mockReturnValue({ ...mockPackage });
+      mockPackageRepo.save.mockResolvedValue({
+        ...mockPackage,
+        slug: 'hajj-premium-2027-2',
+      });
+
+      const result = await service.createPackage({
+        name: 'Hajj Premium 2027',
+        type: PackageType.HAJJ,
+        departure_date: '2027-05-20',
+        return_date: '2027-06-05',
+        booking_start: '2026-01-01T00:00:00Z',
+        booking_end: '2027-04-01T00:00:00Z',
+      });
+
+      expect(result.slug).toBe('hajj-premium-2027-2');
+      expect(mockPackageRepo.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ withDeleted: true }),
+      );
     });
   });
 

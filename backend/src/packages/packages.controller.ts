@@ -67,6 +67,11 @@ export class AdminPackagesController {
     return this.packagesService.adminListAll(query);
   }
 
+  @Get('packages/:id')
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.packagesService.findOneAdmin(id);
+  }
+
   @Post('packages')
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() dto: CreatePackageDto) {
