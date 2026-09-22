@@ -96,7 +96,7 @@ The simplest possible path. Two commands, no flags, no helpers required:
 docker compose up -d --build
 
 # 2. Seed the demo users
-docker compose exec backend npm run seed
+docker compose exec backend npm run seed:prod
 ```
 
 Once `docker compose ps` reports everything `healthy`, open
@@ -113,8 +113,19 @@ To reset, drop the database volume and seed again:
 ```bash
 docker compose down -v
 docker compose up -d --build
-docker compose exec backend npm run seed
+docker compose exec backend npm run seed:prod
 ```
+
+> **Why `seed:prod` and not `seed`?**
+> The default `npm run seed` runs through `ts-node` (a dev-only tool), so
+> it works on the host or in the `dev` Docker stage but **not** in the
+> production `runner` stage — the production image only ships the compiled
+> `dist/` tree. `npm run seed:prod` runs the same seed against the
+> compiled `dist/database/seeds/seed.js`, which is what the production
+> container has.
+>
+> On the host (`cd backend && npm run start:dev`) the dev seed still works
+> as expected.
 
 ### Option B — Dev stack with hot reload
 
@@ -126,6 +137,10 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 # (in another terminal)
 docker compose -f docker-compose.yml -f docker-compose.dev.yml exec backend npm run seed
 ```
+
+(In the dev stack, the source is bind-mounted and `ts-node` is installed,
+so the original `npm run seed` works. `npm run seed:prod` would only
+work after `npm run build` has produced `dist/`.)
 
 `docker-compose.dev.yml` adds:
 

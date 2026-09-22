@@ -17,14 +17,16 @@ silently skipped.
    `frontend`) as healthy.
 2. **Seed accounts** (idempotent — safe to re-run)
    ```bash
-   cd backend
-   npm run seed
+   docker compose exec backend npm run seed:prod
    ```
    Expect:
    ```
    + Created Admin: admin@hajj.gov.bd (password: Admin123!)
    + Created Pilgrim User: pilgrim@example.com (password: User123!)
    ```
+   > The `seed:prod` variant runs the compiled `dist/database/seeds/seed.js` and is what
+   > the production `runner` stage can execute. The plain `npm run seed` (which uses
+   > `ts-node`) is for local host or the dev Docker stage only.
 3. **Open the app**: <http://localhost:3000>
 
 ### Test accounts
@@ -368,7 +370,7 @@ If anything regresses, you can reset state cleanly with:
 ```bash
 docker compose down -v
 docker compose up -d --build
-cd backend && npm run seed
+docker compose exec backend npm run seed:prod
 ```
 
 ---
