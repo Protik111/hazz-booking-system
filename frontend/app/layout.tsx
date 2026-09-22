@@ -19,6 +19,11 @@ export const metadata: Metadata = {
   },
   description:
     "Book Hajj, Ramadan Umrah, off-season Umrah, and Ziyarah packages online. Secure seat reservation, transparent payments, and installment plans.",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

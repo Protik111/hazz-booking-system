@@ -20,8 +20,8 @@ import Input from "@/components/ui/Input";
 import AppSelect from "@/components/ui/AppSelect";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/booking/StatusBadge";
-import Spinner from "@/components/ui/Spinner";
 import ErrorState from "@/components/ui/ErrorState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { ApiError } from "@/lib/api/types";
 import { formatBDT, formatDate } from "@/lib/format";
 
@@ -82,11 +82,7 @@ export default function AdminPackageDetailPage({ params }: Props) {
   }, [pkg]);
 
   if (loading) {
-    return (
-      <div className="flex h-60 items-center justify-center">
-        <Spinner size="lg" />
-      </div>
-    );
+    return <PackageDetailSkeleton />;
   }
   if (error || !pkg) {
     return <ErrorState message={error ?? "Package not found."} retry={refetch} />;
@@ -496,6 +492,62 @@ function Row({
     <div className="flex items-center justify-between gap-2">
       <dt className="text-default text-text-muted">{label}</dt>
       <dd className="text-default text-text">{value}</dd>
+    </div>
+  );
+}
+
+/**
+ * Detail-page skeleton for the package editor. Mirrors the real layout
+ * (header with action buttons, edit card with input fields, then a tiers
+ * table) so the loaded data swaps in without the page reflowing underneath.
+ */
+function PackageDetailSkeleton() {
+  return (
+    <div className="space-y-6" aria-hidden="true">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <Skeleton className="h-7 w-56" />
+          <Skeleton className="mt-2 h-3.5 w-72" />
+        </div>
+        <div className="flex gap-2">
+          <Skeleton className="h-9 w-24 rounded-chip" />
+          <Skeleton className="h-9 w-24 rounded-chip" />
+        </div>
+      </div>
+
+      <div className="rounded-card border border-border bg-card p-6">
+        <Skeleton className="mb-4 h-4 w-32" />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Skeleton className="mb-1.5 h-2.5 w-12" />
+            <Skeleton className="h-9 w-full rounded-chip" />
+          </div>
+          <div>
+            <Skeleton className="mb-1.5 h-2.5 w-16" />
+            <Skeleton className="h-9 w-full rounded-chip" />
+          </div>
+        </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <Skeleton className="h-9 w-full rounded-chip" />
+          <Skeleton className="h-9 w-full rounded-chip" />
+          <Skeleton className="h-9 w-full rounded-chip" />
+        </div>
+      </div>
+
+      <div className="rounded-card border border-border bg-card p-6">
+        <Skeleton className="mb-4 h-4 w-32" />
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4">
+              <Skeleton className="h-3 w-32" />
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="ml-auto h-7 w-20 rounded-chip" />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

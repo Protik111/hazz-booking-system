@@ -10,8 +10,8 @@ import Container from "@/components/ui/Container";
 import PageHeader from "@/components/ui/PageHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import Spinner from "@/components/ui/Spinner";
 import ErrorState from "@/components/ui/ErrorState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import PilgrimForm, {
   emptyPilgrim,
   type PilgrimFormData,
@@ -44,8 +44,23 @@ export default function NewBookingPage() {
 
 function LoadingShell() {
   return (
-    <div className="flex h-60 items-center justify-center">
-      <Spinner size="lg" />
+    <div className="space-y-6 py-10" aria-hidden="true">
+      <div>
+        <Skeleton className="h-7 w-56" />
+        <Skeleton className="mt-2 h-3.5 w-72" />
+      </div>
+      <div className="rounded-card border border-border bg-card p-6">
+        <Skeleton className="mb-4 h-4 w-32" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="rounded-chip border border-border p-4">
+              <Skeleton className="h-3.5 w-24" />
+              <Skeleton className="mt-2 h-5 w-20" />
+              <Skeleton className="mt-3 h-3 w-32" />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

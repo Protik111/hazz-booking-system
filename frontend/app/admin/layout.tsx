@@ -5,7 +5,8 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/contexts/AuthContext";
-import Spinner from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
+import KpiGridSkeleton from "@/components/ui/KpiGridSkeleton";
 
 const TABS = [
   { href: "/admin", label: "Overview" },
@@ -41,8 +42,38 @@ export default function AdminLayout({
 
   if (status === "loading") {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Spinner size="lg" />
+      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <Skeleton className="h-6 w-32 rounded-pill" />
+        <nav className="mb-6 mt-3 flex flex-wrap gap-x-1 gap-y-0 border-b border-border">
+          {TABS.map((tab) => (
+            <Skeleton key={tab.href} className="mr-3 h-8 w-24" />
+          ))}
+        </nav>
+        <KpiGridSkeleton count={6} />
+        <div className="mt-8 grid gap-6 lg:grid-cols-2">
+          <div className="rounded-card border border-border bg-card p-6">
+            <Skeleton className="mb-4 h-4 w-32" />
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <Skeleton className="h-3 w-40" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-card border border-border bg-card p-6">
+            <Skeleton className="mb-4 h-4 w-32" />
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <Skeleton className="h-3 w-32" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

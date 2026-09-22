@@ -5,7 +5,8 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { useAuth } from "@/contexts/AuthContext";
-import Spinner from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
+import CardSkeleton from "@/components/ui/CardSkeleton";
 
 const TABS = [
   { href: "/dashboard", label: "Overview" },
@@ -34,8 +35,20 @@ export default function DashboardLayout({
 
   if (status === "loading") {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Spinner size="lg" />
+      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <nav className="mb-6 flex flex-wrap gap-1 border-b border-border">
+          {TABS.map((tab) => (
+            <Skeleton key={tab.href} className="mr-4 h-8 w-24" />
+          ))}
+        </nav>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <CardSkeleton rows={2} withHeader />
+          <CardSkeleton rows={2} withHeader />
+          <CardSkeleton rows={2} withHeader />
+        </div>
+        <div className="mt-6">
+          <CardSkeleton rows={4} />
+        </div>
       </div>
     );
   }

@@ -12,8 +12,8 @@ import PageHeader from "@/components/ui/PageHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import StatusBadge from "@/components/booking/StatusBadge";
-import Spinner from "@/components/ui/Spinner";
 import ErrorState from "@/components/ui/ErrorState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { formatBDT, formatDate, formatDateTime } from "@/lib/format";
 
 interface Props {
@@ -38,11 +38,7 @@ export default function AdminBookingDetailPage({ params }: Props) {
   );
 
   if (loading) {
-    return (
-      <div className="flex h-60 items-center justify-center">
-        <Spinner size="lg" />
-      </div>
-    );
+    return <AdminBookingDetailSkeleton />;
   }
   if (error || !booking) {
     return <ErrorState message={error ?? "Booking not found."} retry={refetch} />;
@@ -358,6 +354,63 @@ function Row({
       >
         {value}
       </dd>
+    </div>
+  );
+}
+
+/**
+ * Detail-page skeleton for the admin booking view. Mirrors the real layout —
+ * header, two-column summary/totals cards, then a pilgrims table — so the
+ * transition from loading → loaded is free of layout shift.
+ */
+function AdminBookingDetailSkeleton() {
+  return (
+    <div className="space-y-6" aria-hidden="true">
+      <div>
+        <Skeleton className="h-7 w-56" />
+        <Skeleton className="mt-2 h-3.5 w-72" />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="rounded-card border border-border bg-card p-6 lg:col-span-2">
+          <Skeleton className="mb-4 h-4 w-32" />
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i}>
+                <Skeleton className="h-2.5 w-16" />
+                <Skeleton className="mt-2 h-4 w-24" />
+              </div>
+            ))}
+          </div>
+          <Skeleton className="mt-6 h-2 w-full rounded-pill" />
+        </div>
+        <div className="rounded-card border border-border bg-card p-6">
+          <Skeleton className="mb-4 h-4 w-32" />
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-card border border-border bg-card p-6">
+        <Skeleton className="mb-4 h-4 w-32" />
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="ml-auto h-5 w-16 rounded-pill" />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

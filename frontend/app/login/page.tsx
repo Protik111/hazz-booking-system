@@ -8,7 +8,7 @@ import Container from "@/components/ui/Container";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import Spinner from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/api/types";
 
@@ -27,8 +27,22 @@ export default function LoginPage() {
 
 function LoadingShell() {
   return (
-    <div className="flex h-60 items-center justify-center">
-      <Spinner size="lg" />
+    <div className="mx-auto w-full max-w-md py-16" aria-hidden="true">
+      <div className="rounded-card border border-border bg-card p-6">
+        <Skeleton className="h-5 w-24" />
+        <Skeleton className="mt-2 h-3.5 w-64" />
+        <div className="mt-6 space-y-4">
+          <div>
+            <Skeleton className="mb-1.5 h-2.5 w-12" />
+            <Skeleton className="h-9 w-full rounded-chip" />
+          </div>
+          <div>
+            <Skeleton className="mb-1.5 h-2.5 w-16" />
+            <Skeleton className="h-9 w-full rounded-chip" />
+          </div>
+          <Skeleton className="h-10 w-full rounded-chip" />
+        </div>
+      </div>
     </div>
   );
 }

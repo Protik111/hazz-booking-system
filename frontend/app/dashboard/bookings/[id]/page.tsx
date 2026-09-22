@@ -15,6 +15,7 @@ import Button from "@/components/ui/Button";
 import StatusBadge from "@/components/booking/StatusBadge";
 import Spinner from "@/components/ui/Spinner";
 import ErrorState from "@/components/ui/ErrorState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import Modal from "@/components/ui/Modal";
 import Input from "@/components/ui/Input";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -98,11 +99,7 @@ export default function BookingDetailPage({ params }: BookingDetailProps) {
   }, [paymentHint, booking?.status, id]);
 
   if (loading) {
-    return (
-      <div className="flex h-60 items-center justify-center">
-        <Spinner size="lg" />
-      </div>
-    );
+    return <BookingDetailSkeleton />;
   }
 
   if (error) {
@@ -537,6 +534,72 @@ function Row({
       >
         {value}
       </dd>
+    </div>
+  );
+}
+
+/**
+ * Detail-page skeleton that mirrors the real layout: a header, a 2/3 + 1/3
+ * grid (summary card + totals card), then optional pilgrims/installments
+ * tables. Replacing the centered Spinner with this eliminates the layout
+ * shift when the booking arrives and gives the page a much calmer load.
+ */
+function BookingDetailSkeleton() {
+  return (
+    <div className="space-y-6" aria-hidden="true">
+      {/* Header */}
+      <div>
+        <Skeleton className="h-7 w-56" />
+        <Skeleton className="mt-2 h-3.5 w-72" />
+      </div>
+
+      {/* Summary + Totals grid */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="rounded-card border border-border bg-card p-6 lg:col-span-2">
+          <Skeleton className="mb-4 h-4 w-32" />
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i}>
+                <Skeleton className="h-2.5 w-16" />
+                <Skeleton className="mt-2 h-4 w-24" />
+              </div>
+            ))}
+          </div>
+          <Skeleton className="mt-6 h-2 w-full rounded-pill" />
+          <div className="mt-2 flex justify-between">
+            <Skeleton className="h-2.5 w-20" />
+            <Skeleton className="h-2.5 w-32" />
+          </div>
+        </div>
+
+        <div className="rounded-card border border-border bg-card p-6">
+          <Skeleton className="mb-4 h-4 w-32" />
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Pilgrims table */}
+      <div className="rounded-card border border-border bg-card p-6">
+        <Skeleton className="mb-4 h-4 w-32" />
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="ml-auto h-5 w-16 rounded-pill" />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

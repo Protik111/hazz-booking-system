@@ -7,8 +7,8 @@ import { getAuditLog } from "@/lib/api/endpoints";
 import PageHeader from "@/components/ui/PageHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import Spinner from "@/components/ui/Spinner";
 import ErrorState from "@/components/ui/ErrorState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { formatDateTime } from "@/lib/format";
 
 interface PageProps {
@@ -23,11 +23,7 @@ export default function AuditLogDetailPage({ params }: PageProps) {
   );
 
   if (loading) {
-    return (
-      <div className="flex h-60 items-center justify-center">
-        <Spinner size="lg" />
-      </div>
-    );
+    return <AuditLogDetailSkeleton />;
   }
 
   if (error) {
@@ -136,5 +132,45 @@ function JsonBlock({ value }: { value: unknown }) {
     <pre className="mt-3 max-h-96 overflow-auto rounded-chip border border-border bg-base p-3 font-mono text-meta text-text-muted">
       {text}
     </pre>
+  );
+}
+
+/**
+ * Detail-page skeleton for an audit log entry. Mirrors the real layout:
+ * header, details card with two columns of label/value rows, then two JSON
+ * block cards.
+ */
+function AuditLogDetailSkeleton() {
+  return (
+    <div className="space-y-6" aria-hidden="true">
+      <Skeleton className="h-4 w-32" />
+
+      <div>
+        <Skeleton className="h-7 w-72" />
+        <Skeleton className="mt-2 h-3.5 w-64" />
+      </div>
+
+      <div className="rounded-card border border-border bg-card p-6">
+        <Skeleton className="mb-4 h-4 w-20" />
+        <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i}>
+              <Skeleton className="h-2.5 w-16" />
+              <Skeleton className="mt-2 h-3.5 w-40" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-card border border-border bg-card p-6">
+        <Skeleton className="mb-4 h-4 w-20" />
+        <Skeleton className="h-40 w-full rounded-chip" />
+      </div>
+
+      <div className="rounded-card border border-border bg-card p-6">
+        <Skeleton className="mb-4 h-4 w-20" />
+        <Skeleton className="h-40 w-full rounded-chip" />
+      </div>
+    </div>
   );
 }

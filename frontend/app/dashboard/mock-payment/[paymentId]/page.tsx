@@ -13,9 +13,9 @@ import Container from "@/components/ui/Container";
 import PageHeader from "@/components/ui/PageHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import Spinner from "@/components/ui/Spinner";
 import ErrorState from "@/components/ui/ErrorState";
 import StatusBadge from "@/components/booking/StatusBadge";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { ApiError } from "@/lib/api/types";
 import { useToast } from "@/contexts/ToastContext";
 import { formatBDT, formatDateTime } from "@/lib/format";
@@ -244,8 +244,26 @@ export default function MockPaymentPage({ params }: MockPaymentProps) {
 
 function LoadingShell() {
   return (
-    <div className="flex h-60 items-center justify-center">
-      <Spinner size="lg" />
+    <div className="space-y-6 py-10" aria-hidden="true">
+      <div>
+        <Skeleton className="h-7 w-56" />
+        <Skeleton className="mt-2 h-3.5 w-72" />
+      </div>
+      <div className="rounded-card border border-border bg-card p-6">
+        <Skeleton className="mb-4 h-4 w-32" />
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-center justify-between">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          ))}
+        </div>
+        <div className="mt-6 flex gap-2">
+          <Skeleton className="h-10 w-32 rounded-chip" />
+          <Skeleton className="h-10 w-32 rounded-chip" />
+        </div>
+      </div>
     </div>
   );
 }
