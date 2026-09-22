@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useApi } from "@/hooks/useApi";
+import { useConfirmAction } from "@/hooks/useConfirmAction";
 import {
   adminListCancellations,
   approveCancellation,
@@ -18,7 +19,9 @@ import ErrorState from "@/components/ui/ErrorState";
 import Spinner from "@/components/ui/Spinner";
 import Pagination from "@/components/ui/Pagination";
 import Select from "@/components/ui/Select";
-import { ApiError } from "@/lib/api/types";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/contexts/ToastContext";
+import { errorMessage } from "@/lib/api/types";
 import { formatBDT, formatDateTime } from "@/lib/format";
 
 export default function AdminCancellationsPage() {
@@ -42,33 +45,28 @@ export default function AdminCancellationsPage() {
     id: string;
     reason: string;
   } | null>(null);
-  const [acting, setActing] = useState<string | null>(null);
+  const toast = useToast();
 
-  async function handleApprove(id: string) {
-    if (!confirm("Approve this cancellation request?")) return;
-    setActing(id);
-    try {
-      await approveCancellation(id, {});
-      refetch();
-    } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Couldn't approve.");
-    } finally {
-      setActing(null);
-    }
-  }
+  const approve = useConfirmAction<string>({
+    title: "Approve cancellation request?",
+    description:
+      "This will release the seats back to inventory and, if applicable, spawn a refund. This cannot be undone.",
+    confirmText: "Approve",
+    successTitle: "Cancellation approved",
+    errorTitle: "Couldn't approve",
+    action: (id) => approveCancellation(id, {}),
+    onSuccess: refetch,
+  });
 
   async function handleReject() {
-    if (!rejecting) return;
-    if (!rejecting.reason.trim()) return;
-    setActing(rejecting.id);
+    if (!rejecting || !rejecting.reason.trim()) return;
     try {
       await rejectCancellation(rejecting.id, rejecting.reason.trim());
+      toast.success({ title: "Cancellation rejected" });
       setRejecting(null);
       refetch();
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Couldn't reject.");
-    } finally {
-      setActing(null);
+      toast.error({ title: "Couldn't reject", description: errorMessage(err) });
     }
   }
 
@@ -116,6 +114,7 @@ export default function AdminCancellationsPage() {
           <div className="mt-6 space-y-3">
             {records.map((r) => {
               const isRequested = r.status === "REQUESTED";
+              const busy = approve.busy;
               return (
                 <Card key={r.id}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -150,14 +149,14 @@ export default function AdminCancellationsPage() {
                             onClick={() =>
                               setRejecting({ id: r.id, reason: "" })
                             }
-                            disabled={acting === r.id}
+                            disabled={busy}
                           >
                             Reject
                           </Button>
                           <Button
                             size="sm"
-                            onClick={() => handleApprove(r.id)}
-                            loading={acting === r.id}
+                            onClick={() => approve.confirm(r.id)}
+                            loading={busy}
                           >
                             Approve
                           </Button>
@@ -180,6 +179,8 @@ export default function AdminCancellationsPage() {
           )}
         </>
       )}
+
+      <ConfirmDialog {...approve.dialogProps} />
 
       <Modal
         open={!!rejecting}
@@ -204,7 +205,6 @@ export default function AdminCancellationsPage() {
           <Button
             variant="danger"
             onClick={handleReject}
-            loading={acting !== null}
             disabled={!rejecting?.reason.trim()}
           >
             Reject

@@ -224,10 +224,14 @@ export class CancellationService {
     dto?: ApproveCancellationDto,
   ): Promise<CancellationRequest> {
     return this.dataSource.transaction(async (manager) => {
+      // Lock the cancellation row only. Don't join `booking` here — TypeORM
+      // turns relations into a LEFT JOIN, and Postgres refuses FOR UPDATE on
+      // the nullable outer-join side ("FOR UPDATE cannot be applied to the
+      // nullable side of an outer join"). We load + lock `booking` separately
+      // a few lines down.
       const cancellation = await manager.findOne(CancellationRequest, {
         where: { id },
         lock: { mode: 'pessimistic_write' },
-        relations: ['booking'],
       });
 
       if (!cancellation) {

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useApi } from "@/hooks/useApi";
+import { useConfirmAction } from "@/hooks/useConfirmAction";
 import {
   adminListRefunds,
   approveRefund,
@@ -18,16 +19,18 @@ import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import Spinner from "@/components/ui/Spinner";
 import Pagination from "@/components/ui/Pagination";
-import { ApiError } from "@/lib/api/types";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { errorMessage } from "@/lib/api/types";
+import { useToast } from "@/contexts/ToastContext";
 import { formatBDT, formatDateTime } from "@/lib/format";
 
 export default function AdminRefundsPage() {
   const [page, setPage] = useState(1);
-  const [acting, setActing] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<{
     id: string;
     reason: string;
   } | null>(null);
+  const toast = useToast();
 
   const { data, loading, error, refetch } = useApi(
     () => adminListRefunds({ page, limit: 10 }),
@@ -37,43 +40,42 @@ export default function AdminRefundsPage() {
   const records = data?.data ?? [];
   const meta = data?.meta;
 
-  async function handleApprove(id: string) {
-    if (!confirm("Approve this refund?")) return;
-    setActing(id);
-    try {
-      await approveRefund(id);
-      refetch();
-    } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Couldn't approve.");
-    } finally {
-      setActing(null);
-    }
-  }
+  const approve = useConfirmAction<string>({
+    title: "Approve this refund?",
+    description:
+      "Approving authorizes the refund to be paid out. It still needs to be processed by an operator.",
+    confirmText: "Approve",
+    successTitle: "Refund approved",
+    errorTitle: "Couldn't approve",
+    action: (id) => approveRefund(id),
+    onSuccess: refetch,
+  });
 
   async function handleProcess(id: string) {
-    setActing(id);
     try {
       await processRefund(id, {});
+      toast.success({ title: "Refund processed" });
       refetch();
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Couldn't process.");
-    } finally {
-      setActing(null);
+      toast.error({
+        title: "Couldn't process",
+        description: errorMessage(err),
+      });
     }
   }
 
   async function handleReject() {
-    if (!rejecting) return;
-    if (!rejecting.reason.trim()) return;
-    setActing(rejecting.id);
+    if (!rejecting || !rejecting.reason.trim()) return;
     try {
       await rejectRefund(rejecting.id, rejecting.reason.trim());
+      toast.success({ title: "Refund rejected" });
       setRejecting(null);
       refetch();
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Couldn't reject.");
-    } finally {
-      setActing(null);
+      toast.error({
+        title: "Couldn't reject",
+        description: errorMessage(err),
+      });
     }
   }
 
@@ -140,14 +142,14 @@ export default function AdminRefundsPage() {
                               onClick={() =>
                                 setRejecting({ id: r.id, reason: "" })
                               }
-                              disabled={acting === r.id}
+                              disabled={approve.busy}
                             >
                               Reject
                             </Button>
                             <Button
                               size="sm"
-                              onClick={() => handleApprove(r.id)}
-                              loading={acting === r.id}
+                              onClick={() => approve.confirm(r.id)}
+                              loading={approve.busy}
                             >
                               Approve
                             </Button>
@@ -157,7 +159,6 @@ export default function AdminRefundsPage() {
                           <Button
                             size="sm"
                             onClick={() => handleProcess(r.id)}
-                            loading={acting === r.id}
                           >
                             Process
                           </Button>
@@ -180,6 +181,8 @@ export default function AdminRefundsPage() {
           )}
         </>
       )}
+
+      <ConfirmDialog {...approve.dialogProps} />
 
       <Modal
         open={!!rejecting}
@@ -204,7 +207,6 @@ export default function AdminRefundsPage() {
           <Button
             variant="danger"
             onClick={handleReject}
-            loading={acting !== null}
             disabled={!rejecting?.reason.trim()}
           >
             Reject

@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useApi } from "@/hooks/useApi";
+import { useConfirmAction } from "@/hooks/useConfirmAction";
 import {
   createInventoryItem,
   createInventoryTransaction,
@@ -21,7 +22,8 @@ import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import Spinner from "@/components/ui/Spinner";
 import Pagination from "@/components/ui/Pagination";
-import { ApiError } from "@/lib/api/types";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { errorMessage } from "@/lib/api/types";
 
 export default function InventoryPage() {
   const [page, setPage] = useState(1);
@@ -49,6 +51,14 @@ export default function InventoryPage() {
         i.sku.toLowerCase().includes(s),
     );
   }, [data, search]);
+
+  // Stable handler identities — without useCallback, the inline arrows would
+  // change every parent render and force every <Row> to re-render (each Row
+  // owns its own modal/toast state, so this would unmount and recreate them).
+  const handleAdjust = useCallback(
+    (item: InventoryItem) => setAdjustFor({ id: item.id, name: item.name }),
+    [],
+  );
 
   return (
     <>
@@ -106,7 +116,7 @@ export default function InventoryPage() {
                   <Row
                     key={i.id}
                     item={i}
-                    onAdjust={() => setAdjustFor({ id: i.id, name: i.name })}
+                    onAdjust={handleAdjust}
                     onRefetch={refetch}
                   />
                 ))}
@@ -151,19 +161,21 @@ function Row({
   onRefetch,
 }: {
   item: InventoryItem;
-  onAdjust: () => void;
+  onAdjust: (item: InventoryItem) => void;
   onRefetch: () => void;
 }) {
   const lowStock = item.quantity <= item.minimumStock;
-  async function handleDelete() {
-    if (!confirm(`Delete "${item.name}"? Stock history will be lost.`)) return;
-    try {
-      await deleteInventoryItem(item.id);
-      onRefetch();
-    } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Couldn't delete item.");
-    }
-  }
+
+  const del = useConfirmAction<InventoryItem>({
+    title: `Delete "${item.name}"?`,
+    description: "Stock history will be lost. This can't be undone.",
+    confirmText: "Delete",
+    variant: "danger",
+    successTitle: (i) => `Deleted ${i.name}`,
+    errorTitle: "Couldn't delete item",
+    action: (i) => deleteInventoryItem(i.id),
+    onSuccess: onRefetch,
+  });
 
   return (
     <tr>
@@ -184,19 +196,21 @@ function Row({
       <td className="px-4 py-3 text-right">
         <div className="flex justify-end gap-2 text-meta font-medium">
           <button
-            onClick={onAdjust}
+            onClick={() => onAdjust(item)}
             className="text-emerald hover:underline"
           >
             Adjust
           </button>
           <button
-            onClick={handleDelete}
-            className="text-danger hover:underline"
+            onClick={() => del.confirm(item)}
+            disabled={del.busy}
+            className="text-danger hover:underline disabled:opacity-50"
           >
-            Delete
+            {del.busy ? "Deleting…" : "Delete"}
           </button>
         </div>
       </td>
+      <ConfirmDialog {...del.dialogProps} />
     </tr>
   );
 }
@@ -246,11 +260,7 @@ function NewItemModal({
       setQuantity("0");
       setMinimumStock("0");
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : "Couldn't create the item.",
-      );
+      setError(errorMessage(err) ?? "Couldn't create the item.");
     } finally {
       setSubmitting(false);
     }
@@ -345,11 +355,7 @@ function AdjustModal({
       setQuantity("1");
       setNotes("");
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : "Couldn't record the transaction.",
-      );
+      setError(errorMessage(err) ?? "Couldn't record the transaction.");
     } finally {
       setSubmitting(false);
     }

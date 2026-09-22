@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApi } from "@/hooks/useApi";
 import {
@@ -17,7 +17,9 @@ import Spinner from "@/components/ui/Spinner";
 import ErrorState from "@/components/ui/ErrorState";
 import Modal from "@/components/ui/Modal";
 import Input from "@/components/ui/Input";
-import { ApiError } from "@/lib/api/types";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { errorMessage } from "@/lib/api/types";
+import { useToast } from "@/contexts/ToastContext";
 import { formatBDT, formatDate, formatDateTime } from "@/lib/format";
 
 /**
@@ -45,9 +47,12 @@ export default function BookingDetailPage({ params }: BookingDetailProps) {
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
-  const [cancelingPilgrimId, setCancelingPilgrimId] = useState<string | null>(
-    null,
-  );
+  const [confirmingPilgrim, setConfirmingPilgrim] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [cancellingPilgrim, setCancellingPilgrim] = useState(false);
+  const toast = useToast();
 
   const { data: booking, loading, error, refetch } = useApi(
     () => getBooking(id),
@@ -62,18 +67,24 @@ export default function BookingDetailPage({ params }: BookingDetailProps) {
   // Poll the booking while we're still in the verifying window. Stops when
   // either the booking moves to a paid/confirmed state OR the timeout fires,
   // whichever comes first.
+  //
+  // `startedRef` is a one-shot guard so re-renders (e.g. status flipping to
+  // CONFIRMED → clearing the query param → another render) don't restart the
+  // 30-second deadline mid-flight.
+  const startedRef = useRef(false);
   useEffect(() => {
-    if (paymentHint !== "success") return;
-    if (!booking) return;
+    if (paymentHint !== "success" || !booking) return;
     if (
       booking.status === "CONFIRMED" ||
       booking.status === "PARTIALLY_PAID" ||
       booking.status === "COMPLETED"
     ) {
-      // Already past verifying — just clear the query param.
       router.replace(`/dashboard/bookings/${id}`, { scroll: false });
       return;
     }
+    if (startedRef.current) return;
+    startedRef.current = true;
+
     const deadline = Date.now() + VERIFY_TIMEOUT_MS;
     const interval = setInterval(async () => {
       if (Date.now() >= deadline) {
@@ -108,29 +119,32 @@ export default function BookingDetailPage({ params }: BookingDetailProps) {
       await requestCancellation(booking!.id, cancelReason.trim());
       setShowCancelModal(false);
       setCancelReason("");
-      refetch();
-      refetchCancellations();
+      // Both lists depend on this booking — fetch them in parallel rather
+      // than one after the other.
+      await Promise.all([refetch(), refetchCancellations()]);
     } catch (err) {
-      setCancelError(
-        err instanceof ApiError ? err.message : "Could not request cancellation.",
-      );
+      setCancelError(errorMessage(err) ?? "Could not request cancellation.");
     } finally {
       setCancelling(false);
     }
   }
 
-  async function handleCancelPilgrim(pilgrimId: string) {
-    if (!confirm("Cancel this pilgrim's spot?")) return;
-    setCancelingPilgrimId(pilgrimId);
+  async function handleCancelPilgrim() {
+    if (!confirmingPilgrim) return;
+    const target = confirmingPilgrim;
+    setCancellingPilgrim(true);
     try {
-      await cancelPilgrim(booking!.id, pilgrimId);
+      await cancelPilgrim(booking!.id, target.id);
+      toast.success({ title: `Cancelled ${target.name}'s spot` });
+      setConfirmingPilgrim(null);
       refetch();
     } catch (err) {
-      alert(
-        err instanceof ApiError ? err.message : "Could not cancel pilgrim.",
-      );
+      toast.error({
+        title: "Couldn't cancel pilgrim",
+        description: errorMessage(err) ?? "Please try again.",
+      });
     } finally {
-      setCancelingPilgrimId(null);
+      setCancellingPilgrim(false);
     }
   }
 
@@ -340,13 +354,15 @@ export default function BookingDetailPage({ params }: BookingDetailProps) {
                     </td>
                     <td className="px-2 py-2 text-right">
                       {p.status === "ACTIVE" && booking.status !== "CANCELLED" && (
-                        <button
-                          onClick={() => handleCancelPilgrim(p.id)}
-                          disabled={cancelingPilgrimId === p.id}
-                          className="text-meta font-medium text-danger hover:underline disabled:opacity-50"
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            setConfirmingPilgrim({ id: p.id, name: p.fullName })
+                          }
                         >
-                          {cancelingPilgrimId === p.id ? "Cancelling…" : "Cancel"}
-                        </button>
+                          Cancel
+                        </Button>
                       )}
                     </td>
                   </tr>
@@ -460,6 +476,19 @@ export default function BookingDetailPage({ params }: BookingDetailProps) {
           </Button>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={!!confirmingPilgrim}
+        onClose={() => {
+          if (!cancellingPilgrim) setConfirmingPilgrim(null);
+        }}
+        onConfirm={handleCancelPilgrim}
+        title={`Cancel ${confirmingPilgrim?.name ?? "this pilgrim"}'s spot?`}
+        description="This frees up their seat but cannot be undone. The pilgrim won't be charged again."
+        confirmText="Cancel pilgrim"
+        variant="danger"
+        loading={cancellingPilgrim}
+      />
     </>
   );
 }

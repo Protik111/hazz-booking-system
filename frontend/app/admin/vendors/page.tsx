@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useApi } from "@/hooks/useApi";
+import { useConfirmAction } from "@/hooks/useConfirmAction";
 import {
   createVendor,
   createVendorExpense,
@@ -12,6 +13,7 @@ import {
 import type { Vendor, VendorExpense } from "@/lib/api/normalize";
 import type { PaginationMeta } from "@/lib/api/types";
 import type { RawVendorType } from "@/lib/api/endpoints";
+import { errorMessage } from "@/lib/api/types";
 import PageHeader from "@/components/ui/PageHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -23,7 +25,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import Spinner from "@/components/ui/Spinner";
 import Pagination from "@/components/ui/Pagination";
-import { ApiError } from "@/lib/api/types";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { formatBDT, formatDate } from "@/lib/format";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -41,10 +43,18 @@ export default function VendorsPage() {
   const [showVendor, setShowVendor] = useState(false);
   const [showExpense, setShowExpense] = useState(false);
 
-  const vendors = useApi(() => listVendors({ limit: 50 }), []);
+  // Only fetch the data the user is actually viewing. The tabs above toggle
+  // `tab` synchronously; fetching both at mount wastes a request on first
+  // load and after every refetch of the visible tab.
+  const vendors = useApi(
+    () => listVendors({ limit: 50 }),
+    [],
+    { enabled: tab === "vendors" },
+  );
   const expenses = useApi(
     () => listVendorExpenses({ page: expensesPage, limit: 20 }),
     [expensesPage],
+    { enabled: tab === "expenses" },
   );
 
   return (
@@ -145,15 +155,17 @@ function VendorsList({
   onRefetch: () => void;
   vendors: Vendor[];
 }) {
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`Delete vendor "${name}"?`)) return;
-    try {
-      await deleteVendor(id);
-      onRefetch();
-    } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Couldn't delete vendor.");
-    }
-  }
+  const del = useConfirmAction<Vendor>({
+    title: (v) => `Delete vendor "${v.name}"?`,
+    description:
+      "This action can't be undone. Existing vendor expenses stay in the audit log but the vendor will be removed from the supplier list.",
+    confirmText: "Delete",
+    variant: "danger",
+    successTitle: (v) => `Deleted ${v.name}`,
+    errorTitle: "Couldn't delete vendor",
+    action: (v) => deleteVendor(v.id),
+    onSuccess: onRefetch,
+  });
 
   return (
     <div className="mt-6">
@@ -195,10 +207,11 @@ function VendorsList({
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
-                      onClick={() => handleDelete(v.id, v.name)}
-                      className="text-meta font-medium text-danger hover:underline"
+                      onClick={() => del.confirm(v)}
+                      disabled={del.busy}
+                      className="text-meta font-medium text-danger hover:underline disabled:opacity-50"
                     >
-                      Delete
+                      {del.busy ? "Deleting…" : "Delete"}
                     </button>
                   </td>
                 </tr>
@@ -207,6 +220,7 @@ function VendorsList({
           </table>
         </Card>
       )}
+      <ConfirmDialog {...del.dialogProps} />
     </div>
   );
 }
@@ -327,9 +341,7 @@ function NewVendorModal({
       onCreated();
       onClose();
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Couldn't create vendor.",
-      );
+      setError(errorMessage(err) ?? "Couldn't create vendor.");
     } finally {
       setSubmitting(false);
     }
@@ -400,6 +412,13 @@ function NewExpenseModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Memoize the option list — keeps object identity stable while the user
+  // types in unrelated fields, avoiding <Select> re-render churn.
+  const vendorOptions = useMemo(
+    () => vendors.map((v) => ({ value: v.id, label: v.name })),
+    [vendors],
+  );
+
   async function handleSubmit() {
     if (!vendorId) {
       setError("Pick a vendor.");
@@ -438,11 +457,7 @@ function NewExpenseModal({
       onCreated();
       onClose();
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : "Couldn't log the expense.",
-      );
+      setError(errorMessage(err) ?? "Couldn't log the expense.");
     } finally {
       setSubmitting(false);
     }
@@ -458,7 +473,7 @@ function NewExpenseModal({
           onChange={(e) => setVendorId(e.target.value)}
           options={[
             { value: "", label: "Select vendor…" },
-            ...vendors.map((v) => ({ value: v.id, label: v.name })),
+            ...vendorOptions,
           ]}
         />
         <div className="grid grid-cols-2 gap-3">

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useApi } from "@/hooks/useApi";
+import { useConfirmAction } from "@/hooks/useConfirmAction";
 import {
   adminListPayments,
   approveManualPayment,
@@ -19,17 +20,19 @@ import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import Spinner from "@/components/ui/Spinner";
 import Pagination from "@/components/ui/Pagination";
-import { ApiError } from "@/lib/api/types";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { errorMessage } from "@/lib/api/types";
+import { useToast } from "@/contexts/ToastContext";
 import { formatBDT, formatDateTime } from "@/lib/format";
 
 export default function AdminManualPaymentsPage() {
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
-  const [acting, setActing] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<{
     id: string;
     reason: string;
   } | null>(null);
+  const toast = useToast();
 
   const { data, loading, error, refetch } = useApi(
     () =>
@@ -45,31 +48,29 @@ export default function AdminManualPaymentsPage() {
   const records = data?.data ?? [];
   const meta = data?.meta;
 
-  async function handleApprove(id: string) {
-    if (!confirm("Approve this manual payment?")) return;
-    setActing(id);
-    try {
-      await approveManualPayment(id);
-      refetch();
-    } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Couldn't approve.");
-    } finally {
-      setActing(null);
-    }
-  }
+  const approve = useConfirmAction<string>({
+    title: "Approve manual payment?",
+    description:
+      "The approver must differ from the creator (separation of duties). Confirming will mark the booking's received amount and may confirm the booking.",
+    confirmText: "Approve",
+    successTitle: "Manual payment approved",
+    errorTitle: "Couldn't approve",
+    action: (id) => approveManualPayment(id),
+    onSuccess: refetch,
+  });
 
   async function handleReject() {
-    if (!rejecting) return;
-    if (!rejecting.reason.trim()) return;
-    setActing(rejecting.id);
+    if (!rejecting || !rejecting.reason.trim()) return;
     try {
       await rejectManualPayment(rejecting.id, rejecting.reason.trim());
+      toast.success({ title: "Manual payment rejected" });
       setRejecting(null);
       refetch();
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Couldn't reject.");
-    } finally {
-      setActing(null);
+      toast.error({
+        title: "Couldn't reject",
+        description: errorMessage(err),
+      });
     }
   }
 
@@ -158,14 +159,14 @@ export default function AdminManualPaymentsPage() {
                               onClick={() =>
                                 setRejecting({ id: p.id, reason: "" })
                               }
-                              disabled={acting === p.id}
+                              disabled={approve.busy}
                             >
                               Reject
                             </Button>
                             <Button
                               size="sm"
-                              onClick={() => handleApprove(p.id)}
-                              loading={acting === p.id}
+                              onClick={() => approve.confirm(p.id)}
+                              loading={approve.busy}
                             >
                               Approve
                             </Button>
@@ -193,6 +194,8 @@ export default function AdminManualPaymentsPage() {
         </>
       )}
 
+      <ConfirmDialog {...approve.dialogProps} />
+
       <Modal
         open={!!rejecting}
         onClose={() => setRejecting(null)}
@@ -216,7 +219,6 @@ export default function AdminManualPaymentsPage() {
           <Button
             variant="danger"
             onClick={handleReject}
-            loading={acting !== null}
             disabled={!rejecting?.reason.trim()}
           >
             Reject

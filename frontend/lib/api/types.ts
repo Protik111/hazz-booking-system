@@ -453,3 +453,13 @@ export class ApiError extends Error {
     this.code = body.code || "UNKNOWN";
   }
 }
+
+/**
+ * Extract a human-readable message from an unknown thrown value.
+ * Used wherever we surface a server error to the UI (toasts, inline
+ * messages). Returns `undefined` for non-`ApiError` throws so callers
+ * can omit `description` and fall back to a generic title.
+ */
+export function errorMessage(err: unknown): string | undefined {
+  return err instanceof ApiError ? err.message : undefined;
+}

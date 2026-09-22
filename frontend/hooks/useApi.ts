@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ApiError } from "@/lib/api/types";
+import { errorMessage } from "@/lib/api/types";
 import { useToast } from "@/contexts/ToastContext";
 
 interface UseApiState<T> {
@@ -18,6 +18,9 @@ interface UseApiOptions {
   /** Suppress the toast on the *first* (initial) load — useful when a
    *  loading skeleton is shown instead. */
   suppressInitialErrorToast?: boolean;
+  /** When false, skip the fetch entirely. Useful for tab-gated views where
+   *  one of several queries is irrelevant until the user switches tabs. */
+  enabled?: boolean;
 }
 
 /**
@@ -43,6 +46,10 @@ export function useApi<T>(
   const refetch = useCallback(() => setTick((t) => t + 1), []);
 
   useEffect(() => {
+    if (options.enabled === false) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -57,10 +64,7 @@ export function useApi<T>(
       })
       .catch((err) => {
         if (cancelled) return;
-        const message =
-          err instanceof ApiError
-            ? err.message
-            : "Something went wrong. Please try again.";
+        const message = errorMessage(err) ?? "Something went wrong. Please try again.";
         setError(message);
         setLoading(false);
         setInitialLoadDone(true);
@@ -76,7 +80,7 @@ export function useApi<T>(
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, tick]);
+  }, [...deps, tick, options.enabled]);
 
   return { data, loading, error, refetch };
 }
