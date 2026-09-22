@@ -49,44 +49,22 @@ and seed again.
 
 ## Quick start
 
-Pick the path that matches your machine. The Docker path is recommended and
-is the only one covered by the Makefile / `./scripts/dev` helpers.
+Pick the path that matches your machine. **Docker is the only prerequisite.**
+The Makefile and `./scripts/dev` are thin convenience wrappers around
+`docker compose` — use them if you have `make` installed, ignore them
+otherwise.
 
-### Option A — Docker + Makefile (recommended)
+### Option A — Plain `docker compose` (recommended, lowest-friction)
 
-```bash
-# 1. Boot the full dev stack (postgres + redis + backend + frontend)
-make dev
-
-# 2. (in another terminal) seed the demo users
-make seed
-```
-
-Open http://localhost:3000, log in with the credentials above, and you're in.
-Hot reload is on for both backend (`nest start --watch`) and frontend
-(`next dev`).
-
-### Option B — Docker, no Make
-
-Every Make target has a `./scripts/dev` equivalent:
-
-```bash
-./scripts/dev up      # same as `make dev`
-./scripts/dev seed    # same as `make seed`
-./scripts/dev logs    # tail backend + frontend logs
-./scripts/dev down    # stop the dev stack
-```
-
-### Option C — Plain `docker compose`
-
-The Makefile is just a thin wrapper. Under the hood:
+The Makefile is just a wrapper around this. Docker is the only thing you
+need installed.
 
 ```bash
 # Dev stack with hot reload
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 
-# Production stack (multi-stage images, no hot reload)
-docker compose up -d --build
+# (in another terminal, once the stack is healthy) seed the demo users
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec backend npm run seed
 ```
 
 `docker-compose.dev.yml` layers bind-mounts and the lightweight `dev` build
@@ -98,6 +76,36 @@ stage on top of `docker-compose.yml`, so:
   changes.
 - The container's `node_modules` is protected by an anonymous volume, so you
   don't need to `npm install` on the host.
+
+When the stack is up, open http://localhost:3000 and sign in with the
+credentials above.
+
+### Option B — Docker + Makefile (convenience wrapper)
+
+If you have `make` installed, the same commands collapse to:
+
+```bash
+# 1. Boot the full dev stack (postgres + redis + backend + frontend)
+make dev
+
+# 2. (in another terminal) seed the demo users
+make seed
+```
+
+### Option C — Docker, no Make (bash helper)
+
+`make` not installed, but you want shortcut commands? Every Make target has a
+`./scripts/dev` equivalent:
+
+```bash
+./scripts/dev up      # same as `make dev`
+./scripts/dev seed    # same as `make seed`
+./scripts/dev logs    # tail backend + frontend logs
+./scripts/dev down    # stop the dev stack
+```
+
+`./scripts/dev` is a single self-contained bash script — works on any POSIX
+shell with Docker installed.
 
 ### Option D — Run without Docker
 
@@ -118,7 +126,10 @@ npm run dev
 
 Then `cd backend && npm run seed` to populate the demo users.
 
-### Useful Make targets
+### Useful Make / `./scripts/dev` targets
+
+If you went with Option B (Make) or Option C (bash helper), these are the
+shortcuts you'll use day-to-day. Both expose the same command set.
 
 ```bash
 make help              # show every available target
