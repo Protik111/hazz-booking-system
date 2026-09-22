@@ -200,8 +200,6 @@ docker compose down -v
 ```
 ```
 
-The complete API contract lives in `docs/API_SPEC.md`.
-
 ---
 
 ## Prerequisites
