@@ -162,9 +162,11 @@ export async function getPackageAvailability(params: {
   type?: RawPackageType | "";
   year?: number;
 } = {}): Promise<PackageAvailability> {
-  return apiRequest<PackageAvailability>("/packages/availability", {
-    query: params as Record<string, string | number | undefined>,
-  });
+  const res = await apiRequest<SuccessEnvelope<PackageAvailability>>(
+    "/packages/availability",
+    { query: params as Record<string, string | number | undefined> },
+  );
+  return res.data;
 }
 
 // ─── Admin — Packages ─────────────────────────────────────────────────────

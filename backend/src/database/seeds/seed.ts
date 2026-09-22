@@ -176,6 +176,49 @@ async function runSeed() {
     }
   }
 
+  // ─── 2b. Generated packages across all four types ─────────────────────────────
+  // Top up the calendar so the public /packages availability view has plenty
+  // of months with packages. Each entry is slug-checked, so re-running the
+  // seeder is safe.
+  console.log('📦 Seeding generated packages...');
+
+  const generatedPackages = buildGeneratedPackages();
+  let generatedCount = 0;
+
+  for (const pkgData of generatedPackages) {
+    const existing = await packageRepo.findOne({ where: { slug: pkgData.slug } });
+    if (existing) continue;
+
+    const pkg = packageRepo.create({
+      name: pkgData.name,
+      slug: pkgData.slug,
+      type: pkgData.type,
+      description: pkgData.description,
+      departure_date: pkgData.departure_date,
+      return_date: pkgData.return_date,
+      booking_start: pkgData.booking_start,
+      booking_end: pkgData.booking_end,
+      status: PackageStatus.PUBLISHED,
+    });
+    await packageRepo.save(pkg);
+    generatedCount++;
+
+    for (const t of pkgData.tiers) {
+      const tier = tierRepo.create({
+        package_id: pkg.id,
+        name: t.name,
+        price: t.price,
+        currency: t.currency,
+        total_quota: t.total_quota,
+        held_seats: 0,
+        confirmed_seats: 0,
+        status: TierStatus.ACTIVE,
+      });
+      await tierRepo.save(tier);
+    }
+  }
+  console.log(`   + Created ${generatedCount} generated packages`);
+
   // ─── 3. Seed Vendors ─────────────────────────────────────────────────────────
   console.log('🏢 Seeding Vendors...');
   const vendorsData = [
@@ -285,6 +328,197 @@ async function runSeed() {
 
   console.log('✨ Database seeding completed successfully!');
   await AppDataSource.destroy();
+}
+
+// ─── Generated packages ──────────────────────────────────────────────────────
+
+interface GeneratedPackageSpec {
+  name: string;
+  slug: string;
+  type: PackageType;
+  description: string;
+  departure_date: string;
+  return_date: string;
+  booking_start: Date;
+  booking_end: Date;
+  tiers: Array<{
+    name: TierName;
+    price: string;
+    currency: string;
+    total_quota: number;
+  }>;
+}
+
+/**
+ * Produces ~22 published packages spread across all four types and across
+ * 2026–2028 so the public /packages calendar has packages in most months
+ * and every type has something to filter by.
+ */
+const TIER_PROFILE = {
+  nameLabel(p: 'hajj' | 'umrah' | 'ziyarah') {
+    return p === 'hajj'
+      ? 'Premium Hajj'
+      : p === 'umrah'
+        ? 'Standard Umrah'
+        : 'Quick Ziyarah';
+  },
+  slugLabel(p: 'hajj' | 'umrah' | 'ziyarah') {
+    return p === 'hajj'
+      ? 'premium-hajj'
+      : p === 'umrah'
+        ? 'standard-umrah'
+        : 'quick-ziyarah';
+  },
+  durationDays(p: 'hajj' | 'umrah' | 'ziyarah') {
+    return p === 'hajj' ? 24 : p === 'umrah' ? 14 : 6;
+  },
+} as const;
+
+function buildGeneratedPackages(): GeneratedPackageSpec[] {
+  const list: GeneratedPackageSpec[] = [];
+
+  const specs: Array<{
+    type: PackageType;
+    tier: 'hajj' | 'umrah' | 'ziyarah';
+    monthsOut: Array<{ monthIdx: number; year: number; day: number }>;
+  }> = [
+    {
+      type: PackageType.HAJJ,
+      tier: 'hajj',
+      monthsOut: [
+        { year: 2026, monthIdx: 4, day: 22 },
+        { year: 2027, monthIdx: 4, day: 12 },
+        { year: 2028, monthIdx: 4, day: 1 },
+      ],
+    },
+    {
+      type: PackageType.RAMADAN_UMRAH,
+      tier: 'umrah',
+      monthsOut: [
+        { year: 2026, monthIdx: 2, day: 10 },
+        { year: 2027, monthIdx: 2, day: 1 },
+        { year: 2028, monthIdx: 1, day: 19 },
+      ],
+    },
+    {
+      type: PackageType.OFF_SEASON_UMRAH,
+      tier: 'umrah',
+      monthsOut: [
+        { year: 2026, monthIdx: 0, day: 15 },
+        { year: 2026, monthIdx: 5, day: 8 },
+        { year: 2026, monthIdx: 8, day: 20 },
+        { year: 2026, monthIdx: 10, day: 25 },
+        { year: 2027, monthIdx: 1, day: 12 },
+        { year: 2027, monthIdx: 4, day: 5 },
+        { year: 2027, monthIdx: 7, day: 18 },
+        { year: 2027, monthIdx: 10, day: 9 },
+        { year: 2028, monthIdx: 1, day: 24 },
+        { year: 2028, monthIdx: 5, day: 2 },
+      ],
+    },
+    {
+      type: PackageType.ZIYARAH,
+      tier: 'ziyarah',
+      monthsOut: [
+        { year: 2026, monthIdx: 1, day: 5 },
+        { year: 2026, monthIdx: 3, day: 18 },
+        { year: 2026, monthIdx: 6, day: 12 },
+        { year: 2026, monthIdx: 9, day: 3 },
+        { year: 2026, monthIdx: 11, day: 14 },
+        { year: 2027, monthIdx: 0, day: 22 },
+        { year: 2027, monthIdx: 5, day: 17 },
+        { year: 2027, monthIdx: 10, day: 28 },
+      ],
+    },
+  ];
+
+  const typeLabels: Record<PackageType, string> = {
+    [PackageType.HAJJ]: 'Hajj',
+    [PackageType.RAMADAN_UMRAH]: 'Ramadan Umrah',
+    [PackageType.OFF_SEASON_UMRAH]: 'Off-Season Umrah',
+    [PackageType.ZIYARAH]: 'Ziyarah',
+  };
+
+  const descriptions: Record<PackageType, string> = {
+    [PackageType.HAJJ]:
+      'Guided Hajj with premium accommodation close to the Haramain and on-ground support throughout the days of Mina, Arafat, and Muzdalifah.',
+    [PackageType.RAMADAN_UMRAH]:
+      'Perform Umrah in the blessed month of Ramadan with extended stay near the Haram for Itikaf and Tarawih.',
+    [PackageType.OFF_SEASON_UMRAH]:
+      'Off-season Umrah with comfortable weather, historical Ziyarah in Makkah and Madinah, and a flexible schedule.',
+    [PackageType.ZIYARAH]:
+      'Short Ziyarah-focused trip to the sacred sites with guided historical tours and group transport.',
+  };
+
+  for (const spec of specs) {
+    for (const date of spec.monthsOut) {
+      const dep = new Date(Date.UTC(date.year, date.monthIdx, date.day));
+      const ret = new Date(
+        Date.UTC(date.year, date.monthIdx, date.day + TIER_PROFILE.durationDays(spec.tier)),
+      );
+      const bookingStart = new Date(Date.UTC(date.year, date.monthIdx - 6, 1));
+      const bookingEnd = new Date(Date.UTC(date.year, date.monthIdx, date.day - 7));
+
+      const slug = slugify(
+        `${typeLabels[spec.type]}-${TIER_PROFILE.slugLabel(spec.tier)}-${date.year}-${pad2(date.monthIdx + 1)}-${pad2(date.day)}`,
+      );
+
+      list.push({
+        name: `${typeLabels[spec.type]} ${TIER_PROFILE.nameLabel(spec.tier)} ${date.year} (${monthShortName(date.monthIdx)} ${date.day})`,
+        slug,
+        type: spec.type,
+        description: descriptions[spec.type],
+        departure_date: isoDate(dep),
+        return_date: isoDate(ret),
+        booking_start: bookingStart,
+        booking_end: bookingEnd,
+        tiers: buildTiers(spec.tier),
+      });
+    }
+  }
+
+  return list;
+}
+
+function buildTiers(
+  profile: 'hajj' | 'umrah' | 'ziyarah',
+): GeneratedPackageSpec['tiers'] {
+  switch (profile) {
+    case 'hajj':
+      return [
+        { name: TierName.VIP,      price: '1250000.00', currency: 'BDT', total_quota: 30 },
+        { name: TierName.STANDARD, price: '850000.00',  currency: 'BDT', total_quota: 120 },
+        { name: TierName.ECONOMY,  price: '620000.00',  currency: 'BDT', total_quota: 200 },
+      ];
+    case 'umrah':
+      return [
+        { name: TierName.STANDARD, price: '260000.00', currency: 'BDT', total_quota: 100 },
+        { name: TierName.ECONOMY,  price: '180000.00', currency: 'BDT', total_quota: 200 },
+      ];
+    case 'ziyarah':
+      return [
+        { name: TierName.ECONOMY, price: '75000.00', currency: 'BDT', total_quota: 60 },
+      ];
+  }
+}
+
+function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+function isoDate(d: Date): string {
+  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
+}
+
+function monthShortName(monthIdx: number): string {
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][monthIdx];
 }
 
 runSeed().catch((err) => {

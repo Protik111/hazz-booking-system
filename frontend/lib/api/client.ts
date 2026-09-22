@@ -1,7 +1,25 @@
 import { ApiError, type ApiErrorBody } from "./types";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001/api/v1";
+// Resolve the API base URL based on whether this code is running server-side
+// (Next.js server component, inside the container network) or client-side
+// (browser, talking to the host's published port).
+//
+// - Server: prefer `API_BASE_URL_SERVER` (set in docker env to `http://backend:3001/api/v1`),
+//   fall back to `NEXT_PUBLIC_API_BASE_URL`, then to localhost.
+// - Client: must use `NEXT_PUBLIC_API_BASE_URL` (browser is on the host, not the container).
+function resolveApiBaseUrl(): string {
+  const publicUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001/api/v1";
+  const serverUrl = process.env.API_BASE_URL_SERVER;
+
+  // `typeof window === "undefined"` is true only during server-side rendering /
+  // server component execution; on the browser it's always defined.
+  if (typeof window === "undefined") {
+    return serverUrl ?? publicUrl;
+  }
+  return publicUrl;
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 interface RequestOptions {
   method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
