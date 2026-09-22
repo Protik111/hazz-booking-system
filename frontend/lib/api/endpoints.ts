@@ -285,7 +285,7 @@ export async function adjustQuota(
 // ─── Bookings ─────────────────────────────────────────────────────────────
 
 export interface CreateBookingBody {
-  package_id: string;
+  // The backend derives the package from the tier; don't send package_id.
   package_tier_id: string;
   payment_plan: "FULL_PAYMENT" | "INSTALLMENT";
   pilgrim_count?: number;

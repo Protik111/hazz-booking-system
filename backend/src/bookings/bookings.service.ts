@@ -10,6 +10,7 @@ import { Booking } from './entities/booking.entity';
 import { Pilgrim } from './entities/pilgrim.entity';
 import { Installment } from './entities/installment.entity';
 import { PackageTier } from '../packages/entities/package-tier.entity';
+import { Package } from '../packages/entities/package.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
 import { ListBookingsQueryDto } from './dto/list-bookings-query.dto';
@@ -52,18 +53,24 @@ export class BookingsService {
     }
 
     return await this.dataSource.transaction(async (manager) => {
-      // 1. Lock package tier row (SELECT ... FOR UPDATE)
+      // 1. Lock the tier row only (SELECT ... FOR UPDATE on package_tiers).
+      //    Don't join `package` here: TypeORM turns relations into a LEFT JOIN,
+      //    and Postgres refuses FOR UPDATE on the nullable outer-join side
+      //    ("FOR UPDATE cannot be applied to the nullable side of an outer join").
       const tier = await manager.findOne(PackageTier, {
         where: { id: dto.package_tier_id },
         lock: { mode: 'pessimistic_write' },
-        relations: ['package'],
       });
 
       if (!tier) {
         throw new NotFoundException('Package tier not found');
       }
 
-      const pkg = tier.package;
+      // Load the related package in the same transaction (no lock needed;
+      // packages are immutable after publish).
+      const pkg = await manager.findOne(Package, {
+        where: { id: tier.package_id },
+      });
       if (!pkg || pkg.status !== PackageStatus.PUBLISHED) {
         throw new BadRequestException(
           'Package is not published or currently available for booking',

@@ -121,7 +121,6 @@ function NewBookingFlow() {
         .slice(2, 10)}`;
       const created = await createBooking(
         {
-          package_id: pkg.id,
           package_tier_id: selectedTierId,
           payment_plan: paymentPlan,
           pilgrim_count: pilgrims.length,

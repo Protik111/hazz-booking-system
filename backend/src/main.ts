@@ -18,7 +18,10 @@ async function bootstrap() {
       ],
       credentials: true, // Allow Authorization headers & cookies
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
+      // Idempotency-Key is required by POST /bookings (see @ApiHeader on
+      // BookingsController.create). Without it here, the browser refuses the
+      // actual request with a CORS error even though the preflight returns 204.
+      allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'X-CSRF-Token'],
     },
   });
 
