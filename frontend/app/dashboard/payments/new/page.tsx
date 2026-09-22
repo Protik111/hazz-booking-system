@@ -18,6 +18,7 @@ import Spinner from "@/components/ui/Spinner";
 import Select from "@/components/ui/Select";
 import Input from "@/components/ui/Input";
 import { ApiError } from "@/lib/api/types";
+import { useToast } from "@/contexts/ToastContext";
 import { formatBDT } from "@/lib/format";
 
 type Method = "BKASH" | "NAGAD" | "VISA" | "MANUAL_BRANCH";
@@ -73,6 +74,7 @@ function LoadingShell() {
 function NewPaymentFlow() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const toast = useToast();
   const presetBookingId = searchParams.get("bookingId") ?? "";
 
   const [bookingId, setBookingId] = useState(presetBookingId);
@@ -173,6 +175,10 @@ function NewPaymentFlow() {
         amount,
         method,
       });
+      toast.success({
+        title: "Payment initiated",
+        description: `Redirecting to ${METHOD_INFO[method].label}.`,
+      });
       if (method === "MANUAL_BRANCH") {
         // Manual branch deposit has no gateway — straight back to the booking.
         router.push(
@@ -183,11 +189,12 @@ function NewPaymentFlow() {
         router.push(`/dashboard/mock-payment/${payment.id}`);
       }
     } catch (err) {
-      setSubmitError(
+      const message =
         err instanceof ApiError
           ? err.message
-          : "Couldn't start the payment. Please try again.",
-      );
+          : "Couldn't start the payment. Please try again.";
+      setSubmitError(message);
+      toast.error({ title: "Payment failed to start", description: message });
       setSubmitting(false);
     }
   }

@@ -17,6 +17,7 @@ import Spinner from "@/components/ui/Spinner";
 import ErrorState from "@/components/ui/ErrorState";
 import StatusBadge from "@/components/booking/StatusBadge";
 import { ApiError } from "@/lib/api/types";
+import { useToast } from "@/contexts/ToastContext";
 import { formatBDT, formatDateTime } from "@/lib/format";
 
 interface MockPaymentProps {
@@ -32,6 +33,7 @@ const GATEWAY_BADGE: Record<string, { label: string; tone: string }> = {
 export default function MockPaymentPage({ params }: MockPaymentProps) {
   const { paymentId } = use(params);
   const router = useRouter();
+  const toast = useToast();
   const [acting, setActing] = useState<"success" | "fail" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,15 +51,26 @@ export default function MockPaymentPage({ params }: MockPaymentProps) {
           ? await mockPaymentSuccess(paymentId)
           : await mockPaymentFail(paymentId);
 
+      toast.success({
+        title: outcome === "success" ? "Payment succeeded" : "Payment failed",
+        description:
+          outcome === "success"
+            ? "Your booking has been confirmed."
+            : "The sandbox gateway declined this payment.",
+      });
       // Refresh booking in background then bounce to its detail page.
       const dest = `/dashboard/bookings/${updated.bookingId}?payment=${outcome}`;
       router.push(dest);
     } catch (err) {
-      setError(
+      const message =
         err instanceof ApiError
           ? err.message
-          : `Couldn't ${outcome === "success" ? "succeed" : "fail"} the mock payment.`,
-      );
+          : `Couldn't ${outcome === "success" ? "succeed" : "fail"} the mock payment.`;
+      setError(message);
+      toast.error({
+        title: "Couldn't record the gateway response",
+        description: message,
+      });
       setActing(null);
     }
   }

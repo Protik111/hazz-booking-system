@@ -159,10 +159,13 @@ export class PaymentsService {
     metadata?: Record<string, unknown>,
   ): Promise<Payment> {
     return this.dataSource.transaction(async (manager) => {
+      // Lock the payment row only. Don't join `booking` here — TypeORM turns
+      // relations into a LEFT JOIN and Postgres refuses FOR UPDATE on the
+      // nullable outer-join side ("FOR UPDATE cannot be applied to the
+      // nullable side of an outer join").
       const payment = await manager.findOne(Payment, {
         where: { id: paymentId },
         lock: { mode: 'pessimistic_write' },
-        relations: ['booking'],
       });
 
       if (!payment) throw new NotFoundException('Payment not found');

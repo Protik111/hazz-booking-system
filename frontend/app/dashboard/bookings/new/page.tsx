@@ -17,6 +17,7 @@ import PilgrimForm, {
   type PilgrimFormData,
 } from "@/components/booking/PilgrimForm";
 import { ApiError } from "@/lib/api/types";
+import { useToast } from "@/contexts/ToastContext";
 import { formatBDT, formatDate } from "@/lib/format";
 
 const pilgrimSchema = z.object({
@@ -52,6 +53,7 @@ function LoadingShell() {
 function NewBookingFlow() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const toast = useToast();
   const packageIdParam = searchParams.get("packageId") ?? "";
   const tierIdParam = searchParams.get("tierId") ?? "";
 
@@ -138,13 +140,18 @@ function NewBookingFlow() {
         },
         idempotencyKey,
       );
+      toast.success({
+        title: "Booking created",
+        description: `Reservation ${created.bookingNumber} is held for 30 minutes.`,
+      });
       router.push(`/dashboard/bookings/${created.id}`);
     } catch (err) {
-      setSubmitError(
+      const message =
         err instanceof ApiError
           ? err.message
-          : "Couldn't create the booking. Please try again.",
-      );
+          : "Couldn't create the booking. Please try again.";
+      setSubmitError(message);
+      toast.error({ title: "Booking failed", description: message });
       setSubmitting(false);
     }
   }
