@@ -16,6 +16,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import AppSelect from "@/components/ui/AppSelect";
 import Input from "@/components/ui/Input";
+import EmptyState from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ApiError } from "@/lib/api/types";
 import { useToast } from "@/contexts/ToastContext";
@@ -239,7 +240,47 @@ function NewPaymentFlow() {
         description="Choose a booking, an amount, and how you want to pay."
       />
 
-      <Card className="mt-6">
+      {/* If we have a final answer (loaded + no preset, or loaded + preset
+          that turned out to be fully paid), and there are no bookings to pay
+          against, show an explanatory empty state instead of a useless form.
+          This happens for two real cases:
+            1. Pilgrim has no bookings at all.
+            2. Pilgrim has bookings but every one is fully paid / settled.
+          Both cases used to render a form with an empty dropdown — confusing
+          because the user couldn't tell whether the page was broken or there
+          really was nothing to pay. */}
+      {!loadingBookings && !presetBookingId && unpaidBookings.length === 0 ? (
+        <Card className="mt-6">
+          <EmptyState
+            title="Nothing to pay right now"
+            description={
+              bookingsData?.data?.length
+                ? "All your bookings are fully paid. Once a new installment is due or a booking needs top-up, it will show up here."
+                : "You haven't made any bookings yet. Browse our packages to get started."
+            }
+            action={
+              bookingsData?.data?.length ? (
+                <Button href="/dashboard/bookings">View my bookings</Button>
+              ) : (
+                <Button href="/packages">Browse packages</Button>
+              )
+            }
+          />
+        </Card>
+      ) : !loadingBookings && presetBookingId && presetBooking && unpaidBookings.length === 0 ? (
+        <Card className="mt-6">
+          <EmptyState
+            title="This booking is fully paid"
+            description="There's no outstanding balance on this booking. If you believe this is wrong, please contact support."
+            action={
+              <Button href={`/dashboard/bookings/${presetBookingId}`}>
+                Back to booking
+              </Button>
+            }
+          />
+        </Card>
+      ) : (
+        <Card className="mt-6">
         <div className="space-y-5">
           <div>
             <AppSelect
@@ -348,6 +389,7 @@ function NewPaymentFlow() {
           </div>
         </div>
       </Card>
+      )}
     </Container>
   );
 }

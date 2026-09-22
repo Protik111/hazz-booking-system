@@ -75,9 +75,14 @@ export default function PaymentsListPage() {
         title="Payments"
         description="Every payment you've made — gateways, statuses, and references."
         actions={
-          <Button href="/dashboard/payments/new" size="sm">
-            New payment
-          </Button>
+          // Only surface the "New payment" CTA when there is at least one
+          // booking with an outstanding balance. Otherwise the button takes
+          // the user to an empty form with nothing to select.
+          unpaidBookingCount > 0 ? (
+            <Button href="/dashboard/payments/new" size="sm">
+              New payment
+            </Button>
+          ) : undefined
         }
       />
 
