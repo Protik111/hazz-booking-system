@@ -32,6 +32,16 @@ make logs         # tail backend + frontend logs (in another terminal)
 make dev-down     # stop the dev stack
 ```
 
+If you don't have `make` installed, every target has a `./scripts/dev` equivalent:
+
+```bash
+./scripts/dev up           # same as `make dev`
+./scripts/dev build        # same as `make dev-build`
+./scripts/dev logs         # same as `make logs`
+./scripts/dev down         # same as `make dev-down`
+./scripts/dev help         # show all available subcommands
+```
+
 `make dev` is a thin wrapper around:
 
 ```bash
@@ -156,7 +166,10 @@ npm run dev
 │   └── .env.docker
 ├── docker-compose.yml     # full stack: postgres + redis + backend + frontend
 ├── docker-compose.dev.yml # dev override — bind mounts, hot reload (used by `make dev`)
-└── Makefile               # convenience targets: `make dev`, `make prod`, `make logs`, …
+├── Makefile               # convenience targets: `make dev`, `make prod`, `make logs`, …
+└── scripts/
+    └── dev                # drop-in shell-script equivalent of the Makefile (no `make` needed)
+```
 ```
 
 The complete API contract lives in `docs/API_SPEC.md`.

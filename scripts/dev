@@ -1,0 +1,173 @@
+#!/usr/bin/env bash
+# ─────────────────────────────────────────────────────────────────────
+# HajjGo dev helper — drop-in replacement for the Makefile targets
+# for users who don't have `make` installed.
+#
+# Usage (from the repo root):
+#   ./scripts/dev up           # start dev stack (hot reload)
+#   ./scripts/dev build        # rebuild after changing package.json / Dockerfile
+#   ./scripts/dev down         # stop dev stack
+#   ./scripts/dev logs         # tail backend + frontend logs
+#   ./scripts/dev logs-backend # tail backend only
+#   ./scripts/dev logs-frontend# tail frontend only
+#   ./scripts/dev ps           # list running containers
+#   ./scripts/dev shell backend   # open shell in backend container
+#   ./scripts/dev shell frontend  # open shell in frontend container
+#   ./scripts/dev psql         # open psql against the dev database
+#   ./scripts/dev restart      # restart app containers (keeps DB)
+#   ./scripts/dev rebuild-deps # nuke and rebuild images from scratch
+#   ./scripts/dev prod up      # production stack
+#   ./scripts/dev prod down    # stop production stack
+#   ./scripts/dev reset        # ⚠ stop everything, drop volumes (deletes DB)
+#   ./scripts/dev help         # show this help
+#
+# This is intentionally a single self-contained bash script so it works on
+# any POSIX shell — no jq, no awk tricks, no GNU-only features. Tested on
+# Ubuntu 24.04 with bash 5.x.
+# ─────────────────────────────────────────────────────────────────────
+set -euo pipefail
+
+# Run from the repo root regardless of where the script was invoked from.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT"
+
+BASE="docker compose -f docker-compose.yml"
+DEV="$BASE -f docker-compose.dev.yml"
+PROD="$BASE"
+
+# Pretty banner.
+banner() {
+  printf '\033[36m▶ %s\033[0m\n' "$*"
+}
+
+die() {
+  printf '\033[31m✖ %s\033[0m\n' "$*" >&2
+  exit 1
+}
+
+require_docker() {
+  command -v docker >/dev/null 2>&1 \
+    || die "docker not found. Install Docker Desktop or docker-ce first."
+  docker compose version >/dev/null 2>&1 \
+    || die "'docker compose' plugin not found. Install docker-compose-plugin."
+}
+
+usage() {
+  sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//' | sed '$d'
+}
+
+cmd="${1:-help}"
+shift || true
+
+require_docker
+
+case "$cmd" in
+  # ─── Dev stack ────────────────────────────────────────────────────
+  up|dev)
+    banner "Starting dev stack (hot reload)…"
+    exec $DEV up "$@"
+    ;;
+
+  build|dev-build)
+    banner "Rebuilding dev images…"
+    exec $DEV build "$@"
+    ;;
+
+  down|dev-down)
+    banner "Stopping dev stack…"
+    exec $DEV down "$@"
+    ;;
+
+  logs)
+    banner "Tailing backend + frontend logs (Ctrl+C to exit)…"
+    exec $DEV logs -f --tail=100 backend frontend "$@"
+    ;;
+
+  logs-backend)
+    banner "Tailing backend logs (Ctrl+C to exit)…"
+    exec $DEV logs -f --tail=100 backend "$@"
+    ;;
+
+  logs-frontend)
+    banner "Tailing frontend logs (Ctrl+C to exit)…"
+    exec $DEV logs -f --tail=100 frontend "$@"
+    ;;
+
+  shell)
+    target="${1:-backend}"
+    shift || true
+    banner "Opening shell in $target container…"
+    exec $DEV exec "$target" sh "$@"
+    ;;
+
+  psql|shell-postgres)
+    banner "Opening psql against the dev database…"
+    exec $DEV exec postgres psql -U postgres -d hajj_booking "$@"
+    ;;
+
+  ps)
+    exec $DEV ps "$@"
+    ;;
+
+  restart)
+    banner "Restarting app containers (DB preserved)…"
+    exec $DEV restart backend frontend "$@"
+    ;;
+
+  rebuild-deps)
+    banner "Rebuilding from scratch (no cache)…"
+    exec $DEV build --no-cache backend frontend "$@"
+    ;;
+
+  # ─── Production stack ─────────────────────────────────────────────
+  prod)
+    sub="${1:-up}"
+    shift || true
+    case "$sub" in
+      up)
+        banner "Building & starting production stack…"
+        exec $PROD up --build "$@"
+        ;;
+      build)
+        banner "Building production images…"
+        exec $PROD build "$@"
+        ;;
+      down)
+        banner "Stopping production stack…"
+        exec $PROD down "$@"
+        ;;
+      *)
+        die "Unknown prod subcommand: '$sub'. Try: prod up | prod build | prod down"
+        ;;
+    esac
+    ;;
+
+  # ─── Reset (destructive) ──────────────────────────────────────────
+  reset)
+    banner "Stopping dev stack and dropping volumes (deletes DB)…"
+    $DEV down -v || true
+    $BASE down -v || true
+    docker volume rm -f hajj_postgres_data hajj_redis_data 2>/dev/null || true
+    banner "Done. Run './scripts/dev up' to start fresh."
+    ;;
+
+  reset-db)
+    banner "Dropping Postgres volume only…"
+    $DEV stop backend frontend 2>/dev/null || true
+    docker volume rm -f "$(docker volume ls -q | grep postgres_data || echo)" 2>/dev/null || true
+    $DEV up -d postgres redis
+    banner "Postgres reset. Run './scripts/dev up' to start the full stack."
+    ;;
+
+  # ─── Help ─────────────────────────────────────────────────────────
+  help|-h|--help)
+    usage
+    ;;
+
+  *)
+    printf '\033[31m✖ Unknown command: %s\033[0m\n\n' "$cmd" >&2
+    usage
+    exit 1
+    ;;
+esac
