@@ -145,7 +145,7 @@ each, and link to `docs/ARCHITECTURE.md` for the full explanation.
 | Sample `.env.example` for backend and frontend               | check  | P1      | `backend/.env.docker` exists but there is no `.env.example` checked into git to show reviewers what to set if they run without Docker. |
 | Assumptions and trade-offs                                   | missing | P1      | No prior business-rules brief survives in the repo. Add a short "Assumptions & trade-offs" block in `README.md`. |
 | Postman / curl collection                                   | missing | P2      | Helpful but not required. Optional deliverable. |
-| "How to run individual modules" walkthrough                  | missing | P2      | The `MANUAL_TESTING_GUIDE.md` already exists for this; verify it is referenced from README. |
+| "How to run individual modules" walkthrough                  | missing | P2      | The `docs/MANUAL_TESTING_GUIDE.md` already exists for this; verify it is referenced from README. |
 
 ---
 
@@ -196,7 +196,7 @@ No rule from the brief was found to be obviously missing.
 6. Make sure the README has an explicit Node version (recommend **Node 20 LTS**
    because both NestJS 11 and Next.js 16 require ≥ 18.18, and 20 is the safe
    baseline).
-7. Reference `MANUAL_TESTING_GUIDE.md` and `docs/ARCHITECTURE.md` from
+7. Reference `docs/MANUAL_TESTING_GUIDE.md` and `docs/ARCHITECTURE.md` from
    `README.md` so reviewers don't have to hunt for them.
 
 ### P2 (only if time)

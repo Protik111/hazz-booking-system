@@ -21,7 +21,7 @@ be edited without merge conflicts in the README.
 | **Database ERD** (PlantUML, hi-res) | [`docs/erd.png`](docs/erd.png) · [`docs/erd.svg`](docs/erd.svg) (renders) · [`docs/ERD.puml`](docs/ERD.puml) (source) |
 | **Database ERD** (Mermaid, inline) | [`docs/ERD.md`](docs/ERD.md)                                         |
 | **Gap analysis & design Q&A**     | [`docs/GAP_ANALYSIS.md`](docs/GAP_ANALYSIS.md)                       |
-| **Manual end-to-end testing**     | [`MANUAL_TESTING_GUIDE.md`](MANUAL_TESTING_GUIDE.md)                  |
+| **Manual end-to-end testing**     | [`docs/MANUAL_TESTING_GUIDE.md`](docs/MANUAL_TESTING_GUIDE.md)        |
 
 ![Database ERD — high resolution](docs/erd.png)
 
@@ -30,39 +30,26 @@ live at the bottom of this file in [Design answers](#design-answers).
 
 ---
 
-## Sign-in credentials
+## Quick start
 
-The backend ships with a seeder that creates two demo accounts. After the
-stack is up, run the seeder once and sign in with the credentials below.
+**Docker is the only prerequisite.** `make` and `./scripts/dev` are optional
+shortcut wrappers around `docker compose` — use them if you have them
+installed, ignore them otherwise.
 
-Pick whichever seed command matches how you started the stack. Docker is the
-only prerequisite; `make` and `./scripts/dev` are optional shortcuts.
+### Option A — One command from the repo root (recommended)
 
-### Option A — Raw `docker compose` (recommended, lowest-friction)
-
-Works whether or not you have `make` installed:
+The simplest possible path. Two commands, no flags, no helpers required:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml exec backend npm run seed
+# 1. Boot the entire stack (postgres + redis + backend + frontend)
+docker compose up -d --build
+
+# 2. Seed the demo users
+docker compose exec backend npm run seed
 ```
 
-### Option B — `./scripts/dev` (bash helper, no `make`)
-
-```bash
-./scripts/dev seed
-```
-
-### Option C — Make
-
-```bash
-make seed
-```
-
-### Option D — No Docker (host-side seeder)
-
-```bash
-cd backend && npm run seed
-```
+Once `docker compose ps` reports everything `healthy`, open
+http://localhost:3000 and sign in:
 
 | Role    | Email                  | Password    | Where to sign in                                    |
 | ------- | ---------------------- | ----------- | --------------------------------------------------- |
@@ -73,61 +60,46 @@ The seeder is **idempotent** — re-running it does not change the passwords.
 To reset, drop the database volume and seed again:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v
-# (then re-up and re-seed)
+docker compose down -v
+docker compose up -d --build
+docker compose exec backend npm run seed
 ```
 
----
+### Option B — Dev stack with hot reload
 
-## Quick start
-
-Pick the path that matches your machine. **Docker is the only prerequisite.**
-The Makefile and `./scripts/dev` are thin convenience wrappers around
-`docker compose` — use them if you have `make` installed, ignore them
-otherwise.
-
-### Option A — Plain `docker compose` (recommended, lowest-friction)
-
-The Makefile is just a wrapper around this. Docker is the only thing you
-need installed.
+Same as Option A, but with `docker-compose.dev.yml` layered on top so source
+edits are picked up live (no rebuild). Use this when you'll be editing code.
 
 ```bash
-# Dev stack with hot reload
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up
-
-# (in another terminal, once the stack is healthy) seed the demo users
+# (in another terminal)
 docker compose -f docker-compose.yml -f docker-compose.dev.yml exec backend npm run seed
 ```
 
-`docker-compose.dev.yml` layers bind-mounts and the lightweight `dev` build
-stage on top of `docker-compose.yml`, so:
+`docker-compose.dev.yml` adds:
 
-- Edits to `backend/src/`, `frontend/app/`, etc. are picked up **live** — no
-  rebuild required.
-- `docker compose build` is only needed when `package.json` or `Dockerfile`
-  changes.
-- The container's `node_modules` is protected by an anonymous volume, so you
-  don't need to `npm install` on the host.
+- Bind-mounts of `backend/src/`, `frontend/app/`, etc. into the running
+  containers.
+- The lightweight `dev` build stage (no TS compile in the image; the
+  container runs `nest start --watch` / `next dev` directly).
+- An anonymous volume on `/app/node_modules` so the container's installed
+  deps aren't shadowed by the host.
 
-When the stack is up, open http://localhost:3000 and sign in with the
-credentials above.
+`docker compose build` is only needed when `package.json` or a `Dockerfile`
+changes. Pure code edits never require a rebuild.
 
-### Option B — Docker + Makefile (convenience wrapper)
+### Option C — `make` shortcut
 
-If you have `make` installed, the same commands collapse to:
+If you have `make` installed:
 
 ```bash
-# 1. Boot the full dev stack (postgres + redis + backend + frontend)
-make dev
-
-# 2. (in another terminal) seed the demo users
-make seed
+make dev          # Option B equivalent
+make seed         # seed the demo users
 ```
 
-### Option C — Docker, no Make (bash helper)
+### Option D — `./scripts/dev` (bash helper, no `make`)
 
-`make` not installed, but you want shortcut commands? Every Make target has a
-`./scripts/dev` equivalent:
+A single self-contained shell script that mirrors the Makefile:
 
 ```bash
 ./scripts/dev up      # same as `make dev`
@@ -136,10 +108,9 @@ make seed
 ./scripts/dev down    # stop the dev stack
 ```
 
-`./scripts/dev` is a single self-contained bash script — works on any POSIX
-shell with Docker installed.
+Works on any POSIX shell with Docker installed.
 
-### Option D — Run without Docker
+### Option E — Run without Docker
 
 Requires a local Postgres 16 + Redis 7 reachable on `localhost`:
 
@@ -160,7 +131,7 @@ Then `cd backend && npm run seed` to populate the demo users.
 
 ### Useful Make / `./scripts/dev` targets
 
-If you went with Option B (Make) or Option C (bash helper), these are the
+If you went with Option C (Make) or Option D (bash helper), these are the
 shortcuts you'll use day-to-day. Both expose the same command set.
 
 ```bash
@@ -179,12 +150,10 @@ make restart           # restart app containers without dropping the DB
 make erd               # regenerate docs/erd.png + docs/erd.svg
 make rebuild-deps      # nuke and rebuild images from scratch (no cache)
 make reset             # ⚠  stop everything, drop volumes (deletes DB)
+make prod              # build & start the multi-stage production stack
 ```
 
-### Production stack
-
-`make prod` (or plain `docker compose up -d --build`) runs the multi-stage
-production images. Once healthy (`docker compose ps`):
+### Service URLs
 
 | Service       | URL                            |
 | ------------- | ------------------------------ |
@@ -192,12 +161,6 @@ production images. Once healthy (`docker compose ps`):
 | Backend API   | http://localhost:3001/api/v1   |
 | PostgreSQL    | `localhost:5432`               |
 | Redis         | `localhost:6379`               |
-
-To tear everything down (including the persisted database volume):
-
-```bash
-docker compose down -v
-```
 
 ### How it works
 
@@ -238,17 +201,17 @@ docker compose down -v
 └── scripts/
     └── dev                # drop-in shell-script equivalent of the Makefile (no `make` needed)
 ```
-```
 
 ---
 
 ## Prerequisites
 
-- **Node.js 20 LTS** (18.18+ also works; Node 20 is the tested baseline).
-- **Docker 24+** with `docker compose` v2 (only required for the `make dev` /
-  `make prod` path).
-- **Make** *(optional)* — every Make target has a `./scripts/dev` equivalent so
-  you don't need `make` installed.
+- **Docker 24+** with `docker compose` v2 — required for Options A–D
+  (everything except the no-Docker Option E).
+- **Node.js 20 LTS** (18.18+ also works; Node 20 is the tested baseline) —
+  only required for Option E (running on the host without Docker).
+- **Make** *(optional)* — every Make target has a `./scripts/dev` equivalent,
+  so you don't need `make` installed to run Option D.
 - Ports `3000` (frontend), `3001` (backend API), `5432` (Postgres) and `6379`
   (Redis) must be free on the host when running the full stack.
 
