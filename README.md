@@ -1,4 +1,4 @@
-# Hajj & Umrah Booking System
+# Hajj Booking System
 
 End-to-end booking platform for Hajj and Umrah packages: pilgrim-facing storefront,
 payment gateway (mocked for assessment), admin back-office, vendor / inventory /
