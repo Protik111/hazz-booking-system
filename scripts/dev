@@ -19,6 +19,8 @@
 #   ./scripts/dev prod up      # production stack
 #   ./scripts/dev prod down    # stop production stack
 #   ./scripts/dev reset        # ⚠ stop everything, drop volumes (deletes DB)
+#   ./scripts/dev seed         # seed demo users into the dev database
+#   ./scripts/dev erd          # regenerate docs/erd.png + erd.svg from ERD.puml
 #   ./scripts/dev help         # show this help
 #
 # This is intentionally a single self-contained bash script so it works on
@@ -158,6 +160,21 @@ case "$cmd" in
     docker volume rm -f "$(docker volume ls -q | grep postgres_data || echo)" 2>/dev/null || true
     $DEV up -d postgres redis
     banner "Postgres reset. Run './scripts/dev up' to start the full stack."
+    ;;
+
+  # ─── Database seeding ─────────────────────────────────────────────
+  seed)
+    banner "Seeding demo users (admin + pilgrim)…"
+    exec $DEV exec backend npm run seed
+    ;;
+
+  # ─── Documentation diagrams ───────────────────────────────────────
+  erd)
+    banner "Regenerating docs/erd.png + docs/erd.svg from docs/ERD.puml…"
+    docker run --rm \
+      -v "$REPO_ROOT/docs:/work" \
+      plantuml/plantuml:latest \
+      -tpng -tsvg -o /work /work/ERD.puml
     ;;
 
   # ─── Help ─────────────────────────────────────────────────────────

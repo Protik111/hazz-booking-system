@@ -1,11 +1,30 @@
 # Database ERD — Hajj & Umrah Booking System
 
 This ERD covers every table defined in `docs/DATABASE_SCHEMA.md` and used by
-the NestJS backend under `backend/src/`. It is written in Mermaid so it
-renders inline on GitHub and stays in plain text (no binary diffs).
+the NestJS backend under `backend/src/`.
 
-> Render check: paste the diagram below into <https://mermaid.live> if your
-> Markdown viewer does not render Mermaid.
+There are two renderings of the same schema:
+
+| Format                 | File                                    | Use                                                  |
+| ---------------------- | --------------------------------------- | ---------------------------------------------------- |
+| **High-resolution PNG** | [`docs/erd.png`](erd.png) · [`docs/erd.svg`](erd.svg) | Embedded in the README; printed / zoomed for review. |
+| **Mermaid (this file)** | `docs/ERD.md`                           | Inline preview on GitHub; quick edit / no tooling.   |
+| **PlantUML source**     | [`docs/ERD.puml`](ERD.puml)              | Canonical source of truth for both renderings.       |
+
+Regenerate the high-resolution PNG/SVG from the PlantUML source at any time
+with:
+
+```bash
+make erd
+# or, without make:
+./scripts/dev erd
+```
+
+(no Java / PlantUML install required — uses the official `plantuml/plantuml`
+Docker image.)
+
+> Render check: paste the Mermaid diagram below into <https://mermaid.live>
+> if your Markdown viewer does not render Mermaid.
 
 ---
 

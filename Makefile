@@ -14,6 +14,8 @@
 #   make prod          # build & start production stack
 #   make prod-down     # stop production stack
 #   make down          # stop whatever stack is running (dev or prod)
+#   make seed          # run the database seeder (admin + pilgrim demo users)
+#   make erd           # regenerate docs/erd.png + docs/erd.svg from docs/ERD.puml
 #   make reset         # ⚠  nukes volumes (drops DB, clears .next cache)
 #
 # The dev stack uses docker-compose.dev.yml on top of docker-compose.yml.
@@ -27,7 +29,8 @@ COMPOSE_PROD = $(COMPOSE_BASE)
 .PHONY: help dev dev-build dev-down logs logs-backend logs-frontend \
         shell-backend shell-frontend shell-postgres \
         prod prod-build prod-down down restart \
-        reset reset-db rebuild-deps ps
+        reset reset-db rebuild-deps ps \
+        seed erd
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -102,3 +105,27 @@ reset-db: ## ⚠ Drop and recreate only the Postgres volume
 	$(COMPOSE_DEV) stop backend frontend
 	docker volume rm -f $$(docker volume ls -q | grep postgres_data) 2>/dev/null || true
 	$(COMPOSE_DEV) up -d postgres redis
+
+# ─── Database seeding ───────────────────────────────────────────────
+# Runs the TypeORM seeder (creates the demo admin + pilgrim users shown
+# in the README's "Test credentials" block). Idempotent — safe to re-run.
+#
+# Requires the backend to be running (so it can talk to the Postgres
+# container). Run `make dev` in one terminal, then `make seed` here.
+
+seed: ## Seed demo users (admin + pilgrim) into the dev database
+	$(COMPOSE_DEV) exec backend npm run seed
+
+# ─── Documentation diagrams ─────────────────────────────────────────
+# Regenerates docs/erd.png and docs/erd.svg from docs/ERD.puml using
+# the official PlantUML Docker image. No Java / PlantUML install needed.
+#
+# Output:
+#   docs/erd.png  — high-resolution raster (embedded in the README)
+#   docs/erd.svg  — vector (zoomable, editable in Inkscape / Figma)
+
+erd: ## Regenerate docs/erd.png + docs/erd.svg from docs/ERD.puml
+	docker run --rm \
+	  -v "$(CURDIR)/docs:/work" \
+	  plantuml/plantuml:latest \
+	  -tpng -tsvg -o /work /work/ERD.puml

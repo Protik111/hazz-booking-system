@@ -9,91 +9,142 @@ reconciliation tooling.
 
 ---
 
-## Quick start with Docker
+## Documentation map
 
-A single `docker compose up` boots the entire stack — postgres, redis, backend,
-and frontend — in containers.
+The brief asks for diagrams and setup documentation in the repository. They
+live in their own files so each can render at full size, be deep-linked, and
+be edited without merge conflicts in the README.
 
-There are two stacks you can run:
+| What                          | Where                                                                |
+| ----------------------------- | -------------------------------------------------------------------- |
+| High-level system diagram     | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)                       |
+| Database ERD (PlantUML, hi-res) | [`docs/erd.png`](docs/erd.png) · [`docs/ERD.puml`](docs/ERD.puml) (source) |
+| Database ERD (Mermaid, inline)  | [`docs/ERD.md`](docs/ERD.md)                                      |
+| Full REST API contract        | [`docs/API_SPEC.md`](docs/API_SPEC.md)                               |
+| Database schema reference     | [`docs/DATABASE_SCHEMA.md`](docs/DATABASE_SCHEMA.md)                 |
+| Gap analysis & design Q&A     | [`docs/GAP_ANALYSIS.md`](docs/GAP_ANALYSIS.md)                       |
+| Original business-rules brief | [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md)                 |
+| Manual end-to-end testing     | [`MANUAL_TESTING_GUIDE.md`](MANUAL_TESTING_GUIDE.md)                 |
 
-- **`make dev`** — development stack with **hot reload** for both backend and
-  frontend. Edits to source on the host are picked up live; no rebuild needed.
-  This is what you want for everyday work.
-- **`make prod`** — production stack: multi-stage images, compiled `dist/` and
-  Next.js standalone server. Closest to what runs in production.
+![Database ERD — high resolution](docs/erd.png)
 
-### Development workflow (recommended for coding)
+The three design questions the brief explicitly asks the README to answer
+live at the bottom of this file in [Design answers](#design-answers).
+
+---
+
+## Sign-in credentials
+
+The backend ships with a seeder that creates two demo accounts. After the
+stack is up, run the seeder once (`make seed` or `./scripts/dev seed`) and
+sign in with the credentials below.
+
+| Role    | Email                  | Password    | Where to sign in                                    |
+| ------- | ---------------------- | ----------- | --------------------------------------------------- |
+| Pilgrim | `pilgrim@example.com`  | `User123!`  | http://localhost:3000/login → `/dashboard`          |
+| Admin   | `admin@hajj.gov.bd`    | `Admin123!` | http://localhost:3000/login → `/admin`              |
+
+The seeder is **idempotent** — re-running it does not change the passwords.
+To reset, drop the database volume (`make reset` or `./scripts/dev reset`)
+and seed again.
+
+---
+
+## Quick start
+
+Pick the path that matches your machine. The Docker path is recommended and
+is the only one covered by the Makefile / `./scripts/dev` helpers.
+
+### Option A — Docker + Makefile (recommended)
 
 ```bash
-# from the repo root
-make dev          # foreground — streams logs from all services
-make dev-build    # rebuild images after changing package.json / Dockerfile
-make logs         # tail backend + frontend logs (in another terminal)
-make dev-down     # stop the dev stack
+# 1. Boot the full dev stack (postgres + redis + backend + frontend)
+make dev
+
+# 2. (in another terminal) seed the demo users
+make seed
 ```
 
-If you don't have `make` installed, every target has a `./scripts/dev` equivalent:
+Open http://localhost:3000, log in with the credentials above, and you're in.
+Hot reload is on for both backend (`nest start --watch`) and frontend
+(`next dev`).
+
+### Option B — Docker, no Make
+
+Every Make target has a `./scripts/dev` equivalent:
 
 ```bash
-./scripts/dev up           # same as `make dev`
-./scripts/dev build        # same as `make dev-build`
-./scripts/dev logs         # same as `make logs`
-./scripts/dev down         # same as `make dev-down`
-./scripts/dev help         # show all available subcommands
+./scripts/dev up      # same as `make dev`
+./scripts/dev seed    # same as `make seed`
+./scripts/dev logs    # tail backend + frontend logs
+./scripts/dev down    # stop the dev stack
 ```
 
-`make dev` is a thin wrapper around:
+### Option C — Plain `docker compose`
+
+The Makefile is just a thin wrapper. Under the hood:
 
 ```bash
+# Dev stack with hot reload
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+# Production stack (multi-stage images, no hot reload)
+docker compose up -d --build
 ```
 
-The override file (`docker-compose.dev.yml`) layers the following on top of the
-base stack:
+`docker-compose.dev.yml` layers bind-mounts and the lightweight `dev` build
+stage on top of `docker-compose.yml`, so:
 
-- Builds the lightweight `dev` stage of `backend/Dockerfile` (all deps, no TS
-  compile) and the `deps` stage of `frontend/Dockerfile` (already has everything
-  Next.js needs) instead of the slow multi-stage production images.
-- Bind-mounts your local source (`backend/src/`, `frontend/app/`, `components/`,
-  `lib/`, `hooks/`, `contexts/`, `public/`) and the relevant config files into
-  the running containers.
-- Overrides the container `command` to `npm run start:dev` (backend) and
-  `npm run dev` (frontend), so `nest start --watch` and `next dev` pick up your
-  edits and reload automatically.
-- Protects the container's `node_modules` (and the frontend's `.next/`) with
-  anonymous volumes so a host bind-mount doesn't shadow them. **You don't need
-  to run `npm install` on the host** — the container owns its own modules.
+- Edits to `backend/src/`, `frontend/app/`, etc. are picked up **live** — no
+  rebuild required.
+- `docker compose build` is only needed when `package.json` or `Dockerfile`
+  changes.
+- The container's `node_modules` is protected by an anonymous volume, so you
+  don't need to `npm install` on the host.
 
-You only need to run `make dev-build` when **dependencies change** (i.e. you
-edited `package.json` or a `Dockerfile`). Pure code edits never require a
-rebuild.
+### Option D — Run without Docker
 
-#### Useful dev targets
+Requires a local Postgres 16 + Redis 7 reachable on `localhost`:
+
+```bash
+# backend
+cd backend
+npm install
+npm run start:dev
+
+# frontend (in another terminal)
+cd ../frontend
+npm install
+echo "NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api/v1" > .env.local
+npm run dev
+```
+
+Then `cd backend && npm run seed` to populate the demo users.
+
+### Useful Make targets
 
 ```bash
 make help              # show every available target
-make logs              # tail backend + frontend logs together
-make logs-backend      # tail backend only
-make logs-frontend     # tail frontend only
+make dev               # start dev stack (hot reload)
+make dev-build         # rebuild images after changing package.json
+make seed              # seed demo users into the dev database
+make logs              # tail backend + frontend logs
+make logs-backend      # tail backend logs only
+make logs-frontend     # tail frontend logs only
 make shell-backend     # open a shell in the backend container
 make shell-frontend    # open a shell in the frontend container
 make shell-postgres    # open psql against the dev database
 make ps                # list running containers
 make restart           # restart app containers without dropping the DB
+make erd               # regenerate docs/erd.png + docs/erd.svg
 make rebuild-deps      # nuke and rebuild images from scratch (no cache)
+make reset             # ⚠  stop everything, drop volumes (deletes DB)
 ```
 
-### Production stack (what `docker compose up` does by default)
+### Production stack
 
-If you don't use `make`, plain `docker compose up` runs the **production**
-stack. Use this when you want to validate a release build locally.
-
-```bash
-# from the repo root
-docker compose up -d --build    # or: make prod
-```
-
-Once everything is healthy (`docker compose ps`), the four URLs are:
+`make prod` (or plain `docker compose up -d --build`) runs the multi-stage
+production images. Once healthy (`docker compose ps`):
 
 | Service       | URL                            |
 | ------------- | ------------------------------ |
@@ -101,9 +152,6 @@ Once everything is healthy (`docker compose ps`), the four URLs are:
 | Backend API   | http://localhost:3001/api/v1   |
 | PostgreSQL    | `localhost:5432`               |
 | Redis         | `localhost:6379`               |
-
-Open http://localhost:3000 to use the app. The backend listens on `:3001` and is
-exposed to the host so the browser can hit it directly from `localhost:3001`.
 
 To tear everything down (including the persisted database volume):
 
@@ -113,39 +161,19 @@ docker compose down -v
 
 ### How it works
 
-- **`postgres` / `redis`** — health-checked dependencies, names match those referenced
-  by the backend's env (`postgres`, `redis`).
+- **`postgres` / `redis`** — health-checked dependencies; names match those
+  referenced by the backend's env (`postgres`, `redis`).
 - **`backend`** — built from `backend/Dockerfile` (3-stage). Env vars in
-  `backend/.env.docker` are loaded via `env_file`. The DATABASE_URL and REDIS_URL
-  override the env file to use the Docker service names. `NODE_ENV=development` is
-  forced via the compose file so TypeORM doesn't require SSL on the local Postgres
-  container (the backend's own `database.config.ts` enables SSL only in production).
-- **`frontend`** — built from `frontend/Dockerfile` (3-stage, Next.js standalone). Env
-  vars in `frontend/.env.docker` are inlined into the JS bundle at build time.
-  `NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api/v1` is correct because the
-  browser runs on the host (not inside the container network).
-
----
-
-## Running without Docker
-
-### Backend
-
-```bash
-cd backend
-npm install
-# Requires Postgres + Redis reachable; default DATABASE_URL points to localhost.
-npm run start:dev   # watches + rebuilds on changes
-```
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-echo "NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api/v1" > .env.local
-npm run dev
-```
+  `backend/.env.docker` are loaded via `env_file`. `DATABASE_URL` and
+  `REDIS_URL` override the env file to use the Docker service names.
+  `NODE_ENV=development` is forced via the compose file so TypeORM doesn't
+  require SSL on the local Postgres container (the backend's own
+  `database.config.ts` enables SSL only in production).
+- **`frontend`** — built from `frontend/Dockerfile` (3-stage, Next.js
+  standalone). Env vars in `frontend/.env.docker` are inlined into the JS
+  bundle at build time. `NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api/v1`
+  is correct because the browser runs on the host (not inside the container
+  network).
 
 ---
 
@@ -176,45 +204,6 @@ The complete API contract lives in `docs/API_SPEC.md`.
 
 ---
 
-## Test credentials (seeded users)
-
-The backend ships with a seeder that creates two demo accounts. **The seeder
-does not run automatically** — execute it once after the stack is up, then
-log in with the credentials below.
-
-### Run the seeder
-
-```bash
-# from the repo root, with the backend running on :3001
-cd backend
-npm run seed
-```
-
-Output confirms the two accounts:
-
-```
-+ Created Admin: admin@hajj.gov.bd (password: Admin123!)
-+ Created Pilgrim User: pilgrim@example.com (password: User123!)
-```
-
-(The seeder is idempotent — re-running it reports `= Admin already exists`
-and doesn't change the password. If you need to reset the passwords, drop
-the database volume with `docker compose down -v` and re-seed.)
-
-### Sign-in matrix
-
-| Role    | Email                  | Password    | Where to sign in                                  |
-| ------- | ---------------------- | ----------- | ------------------------------------------------- |
-| Pilgrim | `pilgrim@example.com` | `User123!` | http://localhost:3000/login — goes to `/dashboard` |
-| Admin   | `admin@hajj.gov.bd`   | `Admin123!` | http://localhost:3000/login — goes to `/admin`     |
-
-Use the **Admin** account to see the admin nav (Packages, Bookings, Payments,
-Manual payments, Cancellations, Refunds, Reconciliation, Vendors, Inventory,
-Reports, Audit logs). Use the **Pilgrim** account to see the user flow
-(browse packages, book, pay, request cancellation).
-
----
-
 ## Prerequisites
 
 - **Node.js 20 LTS** (18.18+ also works; Node 20 is the tested baseline).
@@ -224,23 +213,6 @@ Reports, Audit logs). Use the **Pilgrim** account to see the user flow
   you don't need `make` installed.
 - Ports `3000` (frontend), `3001` (backend API), `5432` (Postgres) and `6379`
   (Redis) must be free on the host when running the full stack.
-
----
-
-## Where to look next
-
-- `docs/API_SPEC.md` — every REST endpoint, request/response shape, error code.
-- `docs/DATABASE_SCHEMA.md` — every table and column.
-- `docs/PROJECT_CONTEXT.md` — the original business-rules brief that drove the
-  implementation.
-- `docs/ARCHITECTURE.md` — **the Part 2 design deliverable**: high-level
-  system diagram, microservices-or-not answer, full design Q&A and the
-  production scaling path.
-- `docs/ERD.md` — Mermaid entity-relationship diagram for the entire schema.
-- `docs/GAP_ANALYSIS.md` — what shipped, what was added at the end, what the
-  reviewer is most likely to look for.
-- `MANUAL_TESTING_GUIDE.md` — end-to-end manual test walkthrough (register,
-  book, pay, cancel, reconcile).
 
 ---
 

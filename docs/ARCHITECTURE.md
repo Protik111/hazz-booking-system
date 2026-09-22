@@ -280,7 +280,7 @@ flowchart LR
     subgraph Region["Single region, multi-AZ"]
         CDN[Managed CDN]
         LB[Load Balancer]
-        subgraph App["Stateless app tier (Kubernetes / ECS)"]
+        subgraph App["Stateless app tier (multiple Docker containers)"]
             NX[Next.js pods]
             API[NestJS pods]
             SCH[Scheduler pod<br/>single leader via lease]

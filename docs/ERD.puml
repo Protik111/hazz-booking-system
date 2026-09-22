@@ -1,0 +1,362 @@
+' ─────────────────────────────────────────────────────────────────────
+' Hajj & Umrah Booking System — Database ERD (PlantUML source)
+'
+' This is the canonical, high-resolution source for the ERD.
+' A Mermaid version lives at docs/ERD.md (smaller, inline preview).
+' This file renders to docs/erd.png and docs/erd.svg.
+'
+' To regenerate (no Java / PlantUML install needed):
+'   make erd
+' or manually:
+'   docker run --rm -v "$PWD/docs:/work" plantuml/plantuml \
+'     -tpng -tsvg -o . ERD.puml
+' ─────────────────────────────────────────────────────────────────────
+
+@startuml erd
+hide circle
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+skinparam dpi 150
+skinparam nodesep 70
+skinparam ranksep 70
+skinparam maxMessageSize 200
+skinparam wrapWidth 200
+
+' ── Users & access ──────────────────────────────────────────────────
+entity users {
+  *id : uuid <<PK>>
+  --
+  name : varchar
+  email : varchar
+  phone : varchar
+  password_hash : varchar
+  role : enum(USER, ADMIN)
+  status : enum
+  created_at : timestamptz
+  updated_at : timestamptz
+  deleted_at : timestamptz
+}
+
+entity audit_logs {
+  *id : uuid <<PK>>
+  --
+  actor_id : uuid <<FK>>
+  action : varchar
+  entity_type : varchar
+  entity_id : uuid
+  old_value : jsonb
+  new_value : jsonb
+  ip_address : varchar
+  user_agent : text
+  created_at : timestamptz
+}
+
+' ── Packages & tiers ───────────────────────────────────────────────
+entity packages {
+  *id : uuid <<PK>>
+  --
+  name : varchar
+  slug : varchar
+  type : enum(HAJJ, RAMADAN_UMRAH, OFF_SEASON_UMRAH, ZIYARAH)
+  description : text
+  departure_date : date
+  return_date : date
+  booking_start : timestamptz
+  booking_end : timestamptz
+  status : enum
+  created_at : timestamptz
+  updated_at : timestamptz
+  deleted_at : timestamptz
+}
+
+entity package_tiers {
+  *id : uuid <<PK>>
+  --
+  package_id : uuid <<FK>>
+  name : enum(ECONOMY, STANDARD, VIP)
+  price : decimal
+  currency : varchar
+  total_quota : int
+  held_seats : int
+  confirmed_seats : int
+  status : enum
+  created_at : timestamptz
+  updated_at : timestamptz
+  deleted_at : timestamptz
+}
+
+' ── Bookings & pilgrims ────────────────────────────────────────────
+entity bookings {
+  *id : uuid <<PK>>
+  --
+  booking_number : varchar
+  user_id : uuid <<FK>>
+  package_id : uuid <<FK>>
+  package_tier_id : uuid <<FK>>
+  pilgrim_count : int
+  status : enum
+  payment_plan : enum(FULL_PAYMENT, INSTALLMENT)
+  unit_price : decimal
+  total_amount : decimal
+  amount_received : decimal
+  amount_outstanding : decimal
+  hold_expires_at : timestamptz
+  confirmed_at : timestamptz
+  created_at : timestamptz
+  updated_at : timestamptz
+  deleted_at : timestamptz
+}
+
+entity pilgrims {
+  *id : uuid <<PK>>
+  --
+  booking_id : uuid <<FK>>
+  full_name : varchar
+  date_of_birth : date
+  gender : enum(MALE, FEMALE)
+  nationality : varchar
+  passport_number : varchar
+  passport_issue_date : date
+  passport_expiry_date : date
+  passport_document_url : varchar
+  phone : varchar
+  email : varchar
+  status : enum(ACTIVE, CANCELLED)
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity booking_status_history {
+  *id : uuid <<PK>>
+  --
+  booking_id : uuid <<FK>>
+  from_status : enum
+  to_status : enum
+  changed_by : uuid <<FK>>
+  reason : text
+  created_at : timestamptz
+}
+
+' ── Payments & installments ────────────────────────────────────────
+entity installments {
+  *id : uuid <<PK>>
+  --
+  booking_id : uuid <<FK>>
+  installment_number : int
+  amount : decimal
+  paid_amount : decimal
+  due_date : date
+  status : enum(UNPAID, PARTIALLY_PAID, PAID, OVERDUE)
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity payments {
+  *id : uuid <<PK>>
+  --
+  booking_id : uuid <<FK>>
+  user_id : uuid <<FK>>
+  amount : decimal
+  currency : varchar
+  method : enum(BKASH, NAGAD, VISA, MANUAL_BRANCH)
+  status : enum(PENDING, PROCESSING, SUCCESS, FAILED)
+  gateway_transaction_id : varchar
+  gateway_reference : varchar
+  payment_date : timestamptz
+  metadata : jsonb
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity payment_allocations {
+  *id : uuid <<PK>>
+  --
+  payment_id : uuid <<FK>>
+  installment_id : uuid <<FK>>
+  amount : decimal
+  created_at : timestamptz
+}
+
+entity payment_webhook_events {
+  *id : uuid <<PK>>
+  --
+  payment_id : uuid <<FK, nullable>>
+  gateway : enum(BKASH, NAGAD, VISA)
+  event_id : varchar <<UNIQUE>>
+  gateway_transaction_id : varchar
+  event_type : varchar
+  payload : jsonb
+  status : enum(RECEIVED, PROCESSED, FAILED)
+  received_at : timestamptz
+  processed_at : timestamptz
+  error_message : text
+}
+
+entity reconciliation_records {
+  *id : uuid <<PK>>
+  --
+  payment_id : uuid <<FK, nullable>>
+  gateway_transaction_id : varchar
+  internal_amount : decimal
+  gateway_amount : decimal
+  difference : decimal
+  status : enum(MATCHED, MISMATCH, RESOLVED)
+  settlement_date : date
+  resolved_by : uuid <<FK>>
+  resolved_at : timestamptz
+  resolution_notes : text
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+' ── Cancellations & refunds ────────────────────────────────────────
+entity cancellation_requests {
+  *id : uuid <<PK>>
+  --
+  booking_id : uuid <<FK>>
+  pilgrim_id : uuid <<FK, nullable>>
+  reason : text
+  cancellation_charge : decimal
+  vendor_cost : decimal
+  refund_amount : decimal
+  status : enum
+  requested_by : uuid <<FK>>
+  approved_by : uuid <<FK>>
+  approved_at : timestamptz
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+entity refunds {
+  *id : uuid <<PK>>
+  --
+  booking_id : uuid <<FK>>
+  payment_id : uuid <<FK>>
+  amount : decimal
+  method : enum
+  status : enum
+  requested_at : timestamptz
+  approved_at : timestamptz
+  processed_at : timestamptz
+  approved_by : uuid <<FK>>
+  processed_by : uuid <<FK>>
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+' ── Vendors & expenses ─────────────────────────────────────────────
+entity vendors {
+  *id : uuid <<PK>>
+  --
+  name : varchar
+  type : enum(HOTEL, AIRLINE, TRANSPORT, VISA, OTHER)
+  contact_information : text
+  status : enum
+  created_at : timestamptz
+  updated_at : timestamptz
+  deleted_at : timestamptz
+}
+
+entity vendor_expenses {
+  *id : uuid <<PK>>
+  --
+  vendor_id : uuid <<FK>>
+  booking_id : uuid <<FK, nullable>>
+  package_id : uuid <<FK, nullable>>
+  expense_type : enum
+  amount : decimal
+  currency : varchar
+  exchange_rate : decimal
+  amount_bdt : decimal
+  expense_date : date
+  status : enum
+  notes : text
+  created_by : uuid <<FK>>
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+' ── Inventory ──────────────────────────────────────────────────────
+entity inventory_items {
+  *id : uuid <<PK>>
+  --
+  name : varchar
+  sku : varchar
+  unit : varchar
+  quantity : int
+  minimum_stock : int
+  status : enum
+  created_at : timestamptz
+  updated_at : timestamptz
+  deleted_at : timestamptz
+}
+
+entity inventory_transactions {
+  *id : uuid <<PK>>
+  --
+  inventory_item_id : uuid <<FK>>
+  type : enum(PURCHASE, ISSUE, RETURN, ADJUSTMENT)
+  quantity : int
+  booking_id : uuid <<FK, nullable>>
+  pilgrim_id : uuid <<FK, nullable>>
+  created_by : uuid <<FK>>
+  notes : text
+  created_at : timestamptz
+}
+
+' ── Reminders ──────────────────────────────────────────────────────
+entity reminders {
+  *id : uuid <<PK>>
+  --
+  installment_id : uuid <<FK>>
+  kind : enum(UPCOMING, OVERDUE, GRACE)
+  sent_at : timestamptz
+  channel : enum(email, sms)
+  status : enum(QUEUED, SENT, FAILED)
+}
+
+' ─────────────────────────────────────────────────────────────────────
+' Relationships
+' ─────────────────────────────────────────────────────────────────────
+
+users ||--o{ bookings : "owns"
+users ||--o{ payments : "pays"
+users ||--o{ audit_logs : "actor"
+users ||--o{ booking_status_history : "changes"
+users ||--o{ cancellation_requests : "requests / approves"
+users ||--o{ refunds : "approves / processes"
+users ||--o{ vendor_expenses : "creates"
+users ||--o{ inventory_transactions : "creates"
+
+packages ||--|{ package_tiers : "has"
+packages ||--o{ bookings : "is booked as"
+packages ||--o{ vendor_expenses : "may be charged to"
+
+package_tiers ||--o{ bookings : "books"
+
+bookings ||--|{ pilgrims : "contains"
+bookings ||--|{ installments : "scheduled"
+bookings ||--o{ payments : "receives"
+bookings ||--o{ cancellation_requests : "may have"
+bookings ||--o{ refunds : "may have"
+bookings ||--o{ booking_status_history : "tracks"
+bookings ||--o{ vendor_expenses : "may be charged to"
+bookings ||--o{ inventory_transactions : "may issue items"
+
+pilgrims ||--o{ cancellation_requests : "may cancel"
+pilgrims ||--o{ inventory_transactions : "may receive items"
+
+installments ||--o{ payment_allocations : "paid by"
+installments ||--o{ reminders : "triggers"
+
+payments ||--o{ payment_allocations : "allocates"
+payments ||--o{ payment_webhook_events : "delivered by"
+payments ||--o{ reconciliation_records : "compared in"
+payments ||--o{ refunds : "may refund"
+
+vendors ||--o{ vendor_expenses : "incurred by"
+
+inventory_items ||--o{ inventory_transactions : "moves"
+
+@enduml
