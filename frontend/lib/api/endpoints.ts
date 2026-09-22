@@ -146,6 +146,27 @@ export async function getPackage(id: string): Promise<PublicPackage> {
   return normalizePublicPackage(res.data);
 }
 
+export interface PackageAvailability {
+  type: string;
+  year: number;
+  months: Array<{ month: string; count: number }>;
+  /** Sparse `YYYY-MM-DD → true` for days with at least one published package. */
+  days: Record<string, boolean>;
+}
+
+/**
+ * Cheap aggregation endpoint that powers the public /packages calendar UI.
+ * Returns month buckets and per-day booleans for the given year + optional type.
+ */
+export async function getPackageAvailability(params: {
+  type?: RawPackageType | "";
+  year?: number;
+} = {}): Promise<PackageAvailability> {
+  return apiRequest<PackageAvailability>("/packages/availability", {
+    query: params as Record<string, string | number | undefined>,
+  });
+}
+
 // ─── Admin — Packages ─────────────────────────────────────────────────────
 
 export async function adminListPackages(params: {

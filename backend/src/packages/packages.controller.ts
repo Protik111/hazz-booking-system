@@ -18,6 +18,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { UserRole } from '../user/enums/user-role.enum';
 import { ListPackagesQueryDto } from './dto/list-packages-query.dto';
+import { PackageAvailabilityQueryDto } from './dto/package-availability.dto';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { UpdatePackageDto } from './dto/update-package.dto';
 import { CreateTierDto } from './dto/create-tier.dto';
@@ -36,6 +37,13 @@ export class PackagesController {
   @Get()
   async listPublished(@Query() query: ListPackagesQueryDto) {
     return this.packagesService.listPublished(query);
+  }
+
+  // NOTE: this MUST be declared before `@Get(':id')` so the literal
+  // `availability` segment isn't captured by the UUID param route.
+  @Get('availability')
+  async availability(@Query() query: PackageAvailabilityQueryDto) {
+    return this.packagesService.getAvailability(query);
   }
 
   @Get(':id')

@@ -18,6 +18,11 @@ import { CreateTierDto } from './dto/create-tier.dto';
 import { UpdateTierDto } from './dto/update-tier.dto';
 import { UpdateTierQuotaDto } from './dto/update-tier-quota.dto';
 import { ListPackagesQueryDto } from './dto/list-packages-query.dto';
+import {
+  AvailabilityMonthBucket,
+  PackageAvailabilityQueryDto,
+  PackageAvailabilityResponse,
+} from './dto/package-availability.dto';
 import { PackageStatus } from './enums/package-status.enum';
 import { TierStatus } from './enums/tier-name.enum';
 
@@ -104,6 +109,65 @@ export class PackagesService {
       throw new NotFoundException('Package not found');
     }
     return this.toPublicResponse(pkg);
+  }
+
+  /**
+   * Returns month-bucket counts + a sparse map of days that have at least one
+   * published package. Powers the public /packages calendar UI so users can
+   * see at a glance which dates are bookable.
+   */
+  async getAvailability(
+    query: PackageAvailabilityQueryDto,
+  ): Promise<PackageAvailabilityResponse> {
+    const year = query.year ?? new Date().getUTCFullYear();
+    const yearStart = `${year}-01-01`;
+    const yearEnd = `${year + 1}-01-01`;
+
+    const monthQb = this.packageRepo
+      .createQueryBuilder('p')
+      .select(`to_char(date_trunc('month', p.departure_date), 'YYYY-MM')`, 'bucket')
+      .addSelect('COUNT(*)', 'count')
+      .where('p.status = :status', { status: PackageStatus.PUBLISHED })
+      .andWhere('p.departure_date >= :yearStart', { yearStart })
+      .andWhere('p.departure_date < :yearEnd', { yearEnd });
+    if (query.type) monthQb.andWhere('p.type = :type', { type: query.type });
+    const monthRows: Array<{ bucket: string; count: string }> =
+      await monthQb.groupBy('bucket').orderBy('bucket', 'ASC').getRawMany();
+
+    const dayQb = this.packageRepo
+      .createQueryBuilder('p')
+      .select(`to_char(p.departure_date, 'YYYY-MM-DD')`, 'day')
+      .where('p.status = :status', { status: PackageStatus.PUBLISHED })
+      .andWhere('p.departure_date >= :yearStart', { yearStart })
+      .andWhere('p.departure_date < :yearEnd', { yearEnd });
+    if (query.type) dayQb.andWhere('p.type = :type', { type: query.type });
+    const dayRows: Array<{ day: string }> = await dayQb.groupBy('day').getRawMany();
+
+    // The months list always contains 12 entries so the calendar UI can
+    // render every cell even when a month has no packages.
+    const monthMap = new Map<string, number>(
+      monthRows.map((row) => [
+        row.bucket,
+        typeof row.count === 'string' ? parseInt(row.count, 10) : Number(row.count),
+      ]),
+    );
+    const months: AvailabilityMonthBucket[] = [];
+    for (let m = 1; m <= 12; m++) {
+      const key = `${year}-${String(m).padStart(2, '0')}`;
+      months.push({ month: key, count: monthMap.get(key) ?? 0 });
+    }
+
+    const days: Record<string, boolean> = {};
+    for (const row of dayRows) {
+      days[row.day] = true;
+    }
+
+    return {
+      type: query.type ?? 'ALL',
+      year,
+      months,
+      days,
+    };
   }
 
   // ─── Admin APIs ──────────────────────────────────────────────────────────────
