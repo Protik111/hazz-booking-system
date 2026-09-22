@@ -39,10 +39,12 @@ const STATUS_OPTIONS = [
 export default function AdminPackageDetailPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
-  const { data: pkg, loading, error, refetch } = useApi(
-    () => adminGetPackage(id),
-    [id],
-  );
+  const {
+    data: pkg,
+    loading,
+    error,
+    refetch,
+  } = useApi(() => adminGetPackage(id), [id]);
 
   // Editable copies of the package fields.
   const [name, setName] = useState("");
@@ -85,7 +87,9 @@ export default function AdminPackageDetailPage({ params }: Props) {
     return <PackageDetailSkeleton />;
   }
   if (error || !pkg) {
-    return <ErrorState message={error ?? "Package not found."} retry={refetch} />;
+    return (
+      <ErrorState message={error ?? "Package not found."} retry={refetch} />
+    );
   }
 
   async function handleSave() {
@@ -117,9 +121,7 @@ export default function AdminPackageDetailPage({ params }: Props) {
       await deletePackage(id);
       router.push("/admin/packages");
     } catch (err) {
-      alert(
-        err instanceof ApiError ? err.message : "Couldn't delete package.",
-      );
+      alert(err instanceof ApiError ? err.message : "Couldn't delete package.");
       setDeleting(false);
     }
   }
@@ -160,7 +162,12 @@ export default function AdminPackageDetailPage({ params }: Props) {
   async function handleAddTier() {
     const price = parseFloat(newTier.price);
     const total = parseInt(newTier.total_quota, 10);
-    if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(total) || total <= 0) {
+    if (
+      !Number.isFinite(price) ||
+      price <= 0 ||
+      !Number.isFinite(total) ||
+      total <= 0
+    ) {
       alert("Enter a valid price and quota.");
       return;
     }
@@ -190,9 +197,9 @@ export default function AdminPackageDetailPage({ params }: Props) {
         description={`${pkg.slug} · ${pkg.type.replaceAll("_", " ")}`}
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" href={`/packages/${pkg.id}`}>
+            {/* <Button variant="outline" size="sm" href={`/packages/${pkg.id}`}>
               View public page
-            </Button>
+            </Button> */}
             <Button
               variant="danger"
               size="sm"
@@ -278,7 +285,10 @@ export default function AdminPackageDetailPage({ params }: Props) {
             <Row label="Type" value={pkg.type.replaceAll("_", " ")} />
             <Row label="Departure" value={formatDate(pkg.departureDate)} />
             <Row label="Return" value={formatDate(pkg.returnDate)} />
-            <Row label="Booking window" value={`${formatDate(pkg.bookingStart)} → ${formatDate(pkg.bookingEnd)}`} />
+            <Row
+              label="Booking window"
+              value={`${formatDate(pkg.bookingStart)} → ${formatDate(pkg.bookingEnd)}`}
+            />
             <Row label="Status" value={<StatusBadge status={pkg.status} />} />
           </dl>
         </Card>
@@ -481,13 +491,7 @@ export default function AdminPackageDetailPage({ params }: Props) {
   );
 }
 
-function Row({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-2">
       <dt className="text-default text-text-muted">{label}</dt>
