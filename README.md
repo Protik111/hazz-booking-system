@@ -33,8 +33,26 @@ live at the bottom of this file in [Design answers](#design-answers).
 ## Sign-in credentials
 
 The backend ships with a seeder that creates two demo accounts. After the
-stack is up, run the seeder once (`make seed` or `./scripts/dev seed`) and
-sign in with the credentials below.
+stack is up, run the seeder once and sign in with the credentials below.
+
+The seed command — works whether or not you have `make` installed:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec backend npm run seed
+```
+
+Equivalent shortcuts if you have `make` or `./scripts/dev`:
+
+```bash
+make seed              # Make
+./scripts/dev seed     # bash helper
+```
+
+And if you went with Option D (no Docker):
+
+```bash
+cd backend && npm run seed
+```
 
 | Role    | Email                  | Password    | Where to sign in                                    |
 | ------- | ---------------------- | ----------- | --------------------------------------------------- |
@@ -42,8 +60,12 @@ sign in with the credentials below.
 | Admin   | `admin@hajj.gov.bd`    | `Admin123!` | http://localhost:3000/login → `/admin`              |
 
 The seeder is **idempotent** — re-running it does not change the passwords.
-To reset, drop the database volume (`make reset` or `./scripts/dev reset`)
-and seed again.
+To reset, drop the database volume and seed again:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v
+# (then re-up and re-seed)
+```
 
 ---
 
