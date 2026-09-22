@@ -926,7 +926,10 @@ export interface RefundReportResponse {
 }
 
 export async function reportRefunds(): Promise<RefundReportResponse> {
-  return apiRequest("/admin/reports/refunds");
+  const res = await apiRequest<SuccessEnvelope<RefundReportResponse>>(
+    "/admin/reports/refunds",
+  );
+  return res.data;
 }
 
 export interface SeatQuotaReportResponse {

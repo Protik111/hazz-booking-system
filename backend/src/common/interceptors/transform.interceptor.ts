@@ -11,6 +11,7 @@ export interface ApiResponse<T> {
   success: boolean;
   data: T;
   meta?: unknown;
+  summary?: unknown;
 }
 
 @Injectable()
@@ -38,11 +39,17 @@ export class TransformInterceptor<T> implements NestInterceptor<
           'data' in result &&
           'meta' in result
         ) {
-          const res = result as unknown as { data: T; meta: unknown };
+          // Reports and similar endpoints return `{ data, meta, summary }` —
+          // `summary` carries aggregate counts (totals, byStatus, etc.). The
+          // earlier version of this interceptor silently dropped it; preserve
+          // any sibling keys so callers can read them off the envelope.
+          const res = result as Record<string, unknown>;
+          const { data, meta, ...rest } = res;
           return {
-            success: true,
-            data: res.data,
-            meta: res.meta,
+            success: true as const,
+            data: data as T,
+            meta,
+            ...rest,
           };
         }
 

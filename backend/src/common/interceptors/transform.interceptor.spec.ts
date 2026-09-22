@@ -55,4 +55,25 @@ describe('TransformInterceptor', () => {
       done();
     });
   });
+
+  it('should preserve sibling fields like `summary` when re-wrapping', (done) => {
+    const reports = {
+      summary: { totalBookings: 5 },
+      data: [{ id: '1' }],
+      meta: { page: 1, limit: 10, total: 1 },
+    };
+    const next: CallHandler = {
+      handle: () => of(reports),
+    };
+
+    interceptor.intercept(mockContext, next).subscribe((result) => {
+      expect(result).toEqual({
+        success: true,
+        data: [{ id: '1' }],
+        meta: { page: 1, limit: 10, total: 1 },
+        summary: { totalBookings: 5 },
+      });
+      done();
+    });
+  });
 });
