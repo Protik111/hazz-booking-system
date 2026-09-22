@@ -10,9 +10,9 @@ import Button from "@/components/ui/Button";
 import StatusBadge from "@/components/booking/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
-import Spinner from "@/components/ui/Spinner";
+import TableSkeleton from "@/components/ui/TableSkeleton";
 import Pagination from "@/components/ui/Pagination";
-import Select from "@/components/ui/Select";
+import AppSelect from "@/components/ui/AppSelect";
 import { formatBDT, formatDate } from "@/lib/format";
 
 const PACKAGE_TYPE_LABEL: Record<string, string> = {
@@ -21,6 +21,32 @@ const PACKAGE_TYPE_LABEL: Record<string, string> = {
   OFF_SEASON_UMRAH: "Off-season Umrah",
   ZIYARAH: "Ziyarah",
 };
+
+const TYPE_OPTIONS = [
+  { value: "", label: "All types" },
+  { value: "HAJJ", label: "Hajj" },
+  { value: "RAMADAN_UMRAH", label: "Ramadan Umrah" },
+  { value: "OFF_SEASON_UMRAH", label: "Off-season Umrah" },
+  { value: "ZIYARAH", label: "Ziyarah" },
+];
+
+const STATUS_OPTIONS = [
+  { value: "", label: "All statuses" },
+  { value: "DRAFT", label: "Draft" },
+  { value: "PUBLISHED", label: "Published" },
+  { value: "CLOSED", label: "Closed" },
+  { value: "CANCELLED", label: "Cancelled" },
+];
+
+const TABLE_COLUMNS = 6;
+const TABLE_WIDTHS = [
+  "w-44", // Name
+  "w-32", // Type
+  "w-24", // Departure
+  "w-10", // Tiers
+  "w-16", // Total quota
+  "w-20", // Status
+];
 
 export default function AdminPackagesPage() {
   const [status, setStatus] = useState<RawPackageStatus | "">("");
@@ -54,43 +80,35 @@ export default function AdminPackagesPage() {
       />
 
       <div className="mt-4 flex flex-wrap gap-3">
-        <Select
-          id="type-filter"
+        <AppSelect
           value={type}
-          onChange={(e) => {
-            setType(e.target.value as RawPackageType);
+          onValueChange={(v) => {
+            setType(v as RawPackageType);
             setPage(1);
           }}
-          options={[
-            { value: "", label: "All types" },
-            { value: "HAJJ", label: "Hajj" },
-            { value: "RAMADAN_UMRAH", label: "Ramadan Umrah" },
-            { value: "OFF_SEASON_UMRAH", label: "Off-season Umrah" },
-            { value: "ZIYARAH", label: "Ziyarah" },
-          ]}
+          options={TYPE_OPTIONS}
+          placeholder="All types"
           className="min-w-[180px]"
         />
-        <Select
-          id="status-filter"
+        <AppSelect
           value={status}
-          onChange={(e) => {
-            setStatus(e.target.value as RawPackageStatus);
+          onValueChange={(v) => {
+            setStatus(v as RawPackageStatus);
             setPage(1);
           }}
-          options={[
-            { value: "", label: "All statuses" },
-            { value: "DRAFT", label: "Draft" },
-            { value: "PUBLISHED", label: "Published" },
-            { value: "CLOSED", label: "Closed" },
-            { value: "CANCELLED", label: "Cancelled" },
-          ]}
+          options={STATUS_OPTIONS}
+          placeholder="All statuses"
           className="min-w-[180px]"
         />
       </div>
 
       {loading ? (
-        <div className="flex h-40 items-center justify-center">
-          <Spinner />
+        <div className="mt-6">
+          <TableSkeleton
+            columns={TABLE_COLUMNS}
+            columnWidths={TABLE_WIDTHS}
+            rows={8}
+          />
         </div>
       ) : error ? (
         <ErrorState message={error} retry={refetch} className="mt-6" />

@@ -17,7 +17,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import Select from "@/components/ui/Select";
+import AppSelect from "@/components/ui/AppSelect";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/booking/StatusBadge";
 import Spinner from "@/components/ui/Spinner";
@@ -220,11 +220,10 @@ export default function AdminPackageDetailPage({ params }: Props) {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            <Select
-              id="status"
+            <AppSelect
               label="Status"
               value={status}
-              onChange={(e) => setStatus(e.target.value as RawPackageStatus)}
+              onValueChange={(v) => setStatus(v as RawPackageStatus)}
               options={STATUS_OPTIONS}
             />
             <div>
@@ -375,14 +374,13 @@ export default function AdminPackageDetailPage({ params }: Props) {
         <div className="mt-6 rounded-chip border border-dashed border-border p-4">
           <h3 className="text-default font-semibold text-text">Add a tier</h3>
           <div className="mt-3 grid gap-3 sm:grid-cols-[140px_1fr_1fr_auto] sm:items-end">
-            <Select
-              id="new-tier-name"
+            <AppSelect
               label="Name"
               value={newTier.name}
-              onChange={(e) =>
+              onValueChange={(v) =>
                 setNewTier((s) => ({
                   ...s,
-                  name: e.target.value as "ECONOMY" | "STANDARD" | "VIP",
+                  name: v as "ECONOMY" | "STANDARD" | "VIP",
                 }))
               }
               options={[
@@ -460,14 +458,13 @@ export default function AdminPackageDetailPage({ params }: Props) {
                 setEditingTier({ ...editingTier, price: e.target.value })
               }
             />
-            <Select
-              id="tier-status"
+            <AppSelect
               label="Status"
               value={editingTier.status}
-              onChange={(e) =>
+              onValueChange={(v) =>
                 setEditingTier({
                   ...editingTier,
-                  status: e.target.value as "ACTIVE" | "INACTIVE",
+                  status: v as "ACTIVE" | "INACTIVE",
                 })
               }
               options={[

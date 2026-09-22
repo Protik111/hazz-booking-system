@@ -9,7 +9,7 @@ import Button from "@/components/ui/Button";
 import StatusBadge from "@/components/booking/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
-import Spinner from "@/components/ui/Spinner";
+import CardSkeleton from "@/components/ui/CardSkeleton";
 import { formatBDT } from "@/lib/format";
 
 export default function DashboardOverviewPage() {
@@ -33,8 +33,13 @@ export default function DashboardOverviewPage() {
       />
 
       {loading ? (
-        <div className="flex h-40 items-center justify-center">
-          <Spinner />
+        <div className="mt-6 space-y-6">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <CardSkeleton rows={2} withHeader />
+            <CardSkeleton rows={2} withHeader />
+            <CardSkeleton rows={2} withHeader />
+          </div>
+          <CardSkeleton rows={4} />
         </div>
       ) : error ? (
         <ErrorState message={error} retry={refetch} />

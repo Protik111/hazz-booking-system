@@ -17,12 +17,23 @@ import Input from "@/components/ui/Input";
 import StatusBadge from "@/components/booking/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
-import Spinner from "@/components/ui/Spinner";
+import TableSkeleton from "@/components/ui/TableSkeleton";
 import Pagination from "@/components/ui/Pagination";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { errorMessage } from "@/lib/api/types";
 import { useToast } from "@/contexts/ToastContext";
 import { formatBDT, formatDateTime } from "@/lib/format";
+
+const TABLE_COLUMNS = 7;
+const TABLE_WIDTHS = [
+  "w-20", // Booking
+  "w-20", // Amount
+  "w-24", // Method
+  "w-44", // Reason
+  "w-32", // Requested
+  "w-20", // Status
+  "w-24", // Actions
+];
 
 export default function AdminRefundsPage() {
   const [page, setPage] = useState(1);
@@ -87,8 +98,12 @@ export default function AdminRefundsPage() {
       />
 
       {loading ? (
-        <div className="flex h-40 items-center justify-center">
-          <Spinner />
+        <div className="mt-6">
+          <TableSkeleton
+            columns={TABLE_COLUMNS}
+            columnWidths={TABLE_WIDTHS}
+            rows={8}
+          />
         </div>
       ) : error ? (
         <ErrorState message={error} retry={refetch} className="mt-6" />

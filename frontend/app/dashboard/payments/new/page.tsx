@@ -15,7 +15,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Spinner from "@/components/ui/Spinner";
-import Select from "@/components/ui/Select";
+import AppSelect from "@/components/ui/AppSelect";
 import Input from "@/components/ui/Input";
 import { ApiError } from "@/lib/api/types";
 import { useToast } from "@/contexts/ToastContext";
@@ -215,11 +215,10 @@ function NewPaymentFlow() {
       <Card className="mt-6">
         <div className="space-y-5">
           <div>
-            <Select
-              id="booking"
+            <AppSelect
               label="Booking"
               value={bookingId}
-              onChange={(e) => setBookingId(e.target.value)}
+              onValueChange={setBookingId}
               error={errors.booking_id}
               options={[
                 ...(presetBookingId ? [] : [{ value: "", label: "Select a booking…" }]),

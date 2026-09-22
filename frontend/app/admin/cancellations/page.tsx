@@ -16,9 +16,9 @@ import Input from "@/components/ui/Input";
 import StatusBadge from "@/components/booking/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
-import Spinner from "@/components/ui/Spinner";
+import CardSkeleton from "@/components/ui/CardSkeleton";
 import Pagination from "@/components/ui/Pagination";
-import Select from "@/components/ui/Select";
+import AppSelect from "@/components/ui/AppSelect";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/contexts/ToastContext";
 import { errorMessage } from "@/lib/api/types";
@@ -78,11 +78,10 @@ export default function AdminCancellationsPage() {
       />
 
       <div className="mt-4 flex flex-wrap gap-3">
-        <Select
-          id="status-filter"
+        <AppSelect
           value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
+          onValueChange={(v) => {
+            setStatus(v);
             setPage(1);
           }}
           options={[
@@ -93,13 +92,17 @@ export default function AdminCancellationsPage() {
             { value: "COMPLETED", label: "Completed" },
             { value: "FAILED", label: "Failed" },
           ]}
+          placeholder="All statuses"
           className="min-w-[180px]"
         />
       </div>
 
       {loading ? (
-        <div className="flex h-40 items-center justify-center">
-          <Spinner />
+        <div className="mt-6 space-y-3">
+          <CardSkeleton rows={3} />
+          <CardSkeleton rows={3} />
+          <CardSkeleton rows={3} />
+          <CardSkeleton rows={3} />
         </div>
       ) : error ? (
         <ErrorState message={error} retry={refetch} className="mt-6" />

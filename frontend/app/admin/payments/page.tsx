@@ -11,9 +11,9 @@ import Card from "@/components/ui/Card";
 import StatusBadge from "@/components/booking/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
-import Spinner from "@/components/ui/Spinner";
+import TableSkeleton from "@/components/ui/TableSkeleton";
 import Pagination from "@/components/ui/Pagination";
-import Select from "@/components/ui/Select";
+import AppSelect from "@/components/ui/AppSelect";
 import { formatBDT, formatDateTime } from "@/lib/format";
 
 const METHOD_LABEL: Record<string, string> = {
@@ -29,6 +29,32 @@ const METHOD_TONE: Record<string, string> = {
   VISA: "bg-indigo-50 text-indigo-700 border-indigo-200",
   MANUAL_BRANCH: "bg-base text-text-muted border-border-strong",
 };
+
+const METHOD_OPTIONS = [
+  { value: "", label: "All methods" },
+  { value: "BKASH", label: "bKash" },
+  { value: "NAGAD", label: "Nagad" },
+  { value: "VISA", label: "Visa" },
+  { value: "MANUAL_BRANCH", label: "Manual branch" },
+];
+
+const STATUS_OPTIONS = [
+  { value: "", label: "All statuses" },
+  { value: "PENDING", label: "Pending" },
+  { value: "PROCESSING", label: "Processing" },
+  { value: "SUCCESS", label: "Success" },
+  { value: "FAILED", label: "Failed" },
+];
+
+const TABLE_COLUMNS = 6;
+const TABLE_WIDTHS = [
+  "w-32", // Date
+  "w-20", // Booking
+  "w-20", // Method
+  "w-20", // Amount
+  "w-32", // Reference
+  "w-20", // Status
+];
 
 export default function AdminPaymentsPage() {
   const [method, setMethod] = useState<RawPaymentMethod | "">("");
@@ -57,43 +83,35 @@ export default function AdminPaymentsPage() {
       />
 
       <div className="mt-4 flex flex-wrap gap-3">
-        <Select
-          id="method-filter"
+        <AppSelect
           value={method}
-          onChange={(e) => {
-            setMethod(e.target.value as RawPaymentMethod);
+          onValueChange={(v) => {
+            setMethod(v as RawPaymentMethod);
             setPage(1);
           }}
-          options={[
-            { value: "", label: "All methods" },
-            { value: "BKASH", label: "bKash" },
-            { value: "NAGAD", label: "Nagad" },
-            { value: "VISA", label: "Visa" },
-            { value: "MANUAL_BRANCH", label: "Manual branch" },
-          ]}
+          options={METHOD_OPTIONS}
+          placeholder="All methods"
           className="min-w-[180px]"
         />
-        <Select
-          id="status-filter"
+        <AppSelect
           value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
+          onValueChange={(v) => {
+            setStatus(v);
             setPage(1);
           }}
-          options={[
-            { value: "", label: "All statuses" },
-            { value: "PENDING", label: "Pending" },
-            { value: "PROCESSING", label: "Processing" },
-            { value: "SUCCESS", label: "Success" },
-            { value: "FAILED", label: "Failed" },
-          ]}
+          options={STATUS_OPTIONS}
+          placeholder="All statuses"
           className="min-w-[180px]"
         />
       </div>
 
       {loading ? (
-        <div className="flex h-40 items-center justify-center">
-          <Spinner />
+        <div className="mt-6">
+          <TableSkeleton
+            columns={TABLE_COLUMNS}
+            columnWidths={TABLE_WIDTHS}
+            rows={10}
+          />
         </div>
       ) : error ? (
         <ErrorState message={error} retry={refetch} className="mt-6" />

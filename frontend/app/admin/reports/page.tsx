@@ -2,6 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import {
+  BarChart3,
+  CalendarCheck2,
+  ClipboardList,
+  Coins,
+  PlaneTakeoff,
+  Wallet,
+} from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import {
   reportBookings,
@@ -15,11 +23,57 @@ import PageHeader from "@/components/ui/PageHeader";
 import Card from "@/components/ui/Card";
 import KpiCard from "@/components/admin/KpiCard";
 import StatusBadge from "@/components/booking/StatusBadge";
-import Spinner from "@/components/ui/Spinner";
 import ErrorState from "@/components/ui/ErrorState";
+import KpiGridSkeleton from "@/components/ui/KpiGridSkeleton";
+import TableSkeleton from "@/components/ui/TableSkeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatBDT, formatDate } from "@/lib/format";
 
-type Tab = "overview" | "bookings" | "payments" | "installments" | "refunds" | "seat-quota";
+type Tab =
+  | "overview"
+  | "bookings"
+  | "payments"
+  | "installments"
+  | "refunds"
+  | "seat-quota";
+
+const SEAT_TABLE_COLUMNS = 8;
+const SEAT_TABLE_WIDTHS = [
+  "w-44", // Package
+  "w-24", // Tier
+  "w-24", // Price
+  "w-16", // Quota
+  "w-12", // Held
+  "w-16", // Confirmed
+  "w-16", // Available
+  "w-12", // Util.
+];
+
+const BOOKINGS_TABLE_COLUMNS = 5;
+const BOOKINGS_TABLE_WIDTHS = [
+  "w-44", // Booking
+  "w-24", // Departure
+  "w-20", // Total
+  "w-20", // Received
+  "w-20", // Status
+];
+
+const PAYMENTS_TABLE_COLUMNS = 4;
+const PAYMENTS_TABLE_WIDTHS = [
+  "w-24", // Booking
+  "w-24", // Method
+  "w-20", // Amount
+  "w-20", // Status
+];
+
+const INSTALLMENTS_TABLE_COLUMNS = 5;
+const INSTALLMENTS_TABLE_WIDTHS = [
+  "w-24", // Booking
+  "w-24", // Due date
+  "w-20", // Amount
+  "w-20", // Paid
+  "w-20", // Status
+];
 
 export default function ReportsPage() {
   const [tab, setTab] = useState<Tab>("overview");
@@ -31,50 +85,74 @@ export default function ReportsPage() {
         description="Operational & financial reports for the platform."
       />
 
-      <div className="mt-4 flex flex-wrap gap-1 border-b border-border">
-        {(
-          [
-            { key: "overview", label: "Overview" },
-            { key: "bookings", label: "Bookings" },
-            { key: "payments", label: "Payments" },
-            { key: "installments", label: "Installments" },
-            { key: "refunds", label: "Refunds" },
-            { key: "seat-quota", label: "Seat quota" },
-          ] as const
-        ).map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`-mb-px border-b-2 px-4 py-2 text-default font-medium transition-colors ${
-              tab === t.key
-                ? "border-emerald text-emerald"
-                : "border-transparent text-text-muted hover:text-text"
-            }`}
+      <Tabs
+        value={tab}
+        onValueChange={(v) => setTab(v as Tab)}
+        className="mt-4"
+      >
+        <TabsList className="flex-wrap">
+          <TabsTrigger
+            value="overview"
+            icon={<BarChart3 className="h-4 w-4" />}
           >
-            {t.label}
-          </button>
-        ))}
-      </div>
+            Overview
+          </TabsTrigger>
+          <TabsTrigger
+            value="bookings"
+            icon={<ClipboardList className="h-4 w-4" />}
+          >
+            Bookings
+          </TabsTrigger>
+          <TabsTrigger
+            value="payments"
+            icon={<Wallet className="h-4 w-4" />}
+          >
+            Payments
+          </TabsTrigger>
+          <TabsTrigger
+            value="installments"
+            icon={<Coins className="h-4 w-4" />}
+          >
+            Installments
+          </TabsTrigger>
+          <TabsTrigger
+            value="refunds"
+            icon={<CalendarCheck2 className="h-4 w-4" />}
+          >
+            Refunds
+          </TabsTrigger>
+          <TabsTrigger
+            value="seat-quota"
+            icon={<PlaneTakeoff className="h-4 w-4" />}
+          >
+            Seat quota
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="mt-6">
-        {tab === "overview" && <OverviewTab />}
-        {tab === "bookings" && <BookingsTab />}
-        {tab === "payments" && <PaymentsTab />}
-        {tab === "installments" && <InstallmentsTab />}
-        {tab === "refunds" && <RefundsTab />}
-        {tab === "seat-quota" && <SeatQuotaTab />}
-      </div>
+        <TabsContent value="overview">
+          <SeatQuotaPanel
+            kpiLabel="Total quota"
+            kpiSubtitle="Platform-wide quota overview."
+            showTierLinks={false}
+          />
+        </TabsContent>
+        <TabsContent value="bookings">
+          <BookingsTab />
+        </TabsContent>
+        <TabsContent value="payments">
+          <PaymentsTab />
+        </TabsContent>
+        <TabsContent value="installments">
+          <InstallmentsTab />
+        </TabsContent>
+        <TabsContent value="refunds">
+          <RefundsTab />
+        </TabsContent>
+        <TabsContent value="seat-quota">
+          <SeatQuotaTab />
+        </TabsContent>
+      </Tabs>
     </>
-  );
-}
-
-function OverviewTab() {
-  return (
-    <SeatQuotaPanel
-      kpiLabel="Total quota"
-      kpiSubtitle="Platform-wide quota overview."
-      showTierLinks={false}
-    />
   );
 }
 
@@ -101,8 +179,13 @@ function SeatQuotaPanel({
 
   if (loading) {
     return (
-      <div className="flex h-40 items-center justify-center">
-        <Spinner />
+      <div className="mt-4 space-y-6">
+        <KpiGridSkeleton count={5} />
+        <TableSkeleton
+          columns={SEAT_TABLE_COLUMNS}
+          columnWidths={SEAT_TABLE_WIDTHS}
+          rows={6}
+        />
       </div>
     );
   }
@@ -116,7 +199,7 @@ function SeatQuotaPanel({
 
   return (
     <>
-      <p className="text-meta text-text-muted">{kpiSubtitle}</p>
+      <p className="mt-4 text-meta text-text-muted">{kpiSubtitle}</p>
 
       <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <KpiCard label={kpiLabel} value={summary.total_quota} />
@@ -214,8 +297,13 @@ function BookingsTab() {
 
   if (loading) {
     return (
-      <div className="flex h-40 items-center justify-center">
-        <Spinner />
+      <div className="mt-4 space-y-6">
+        <KpiGridSkeleton count={4} />
+        <TableSkeleton
+          columns={BOOKINGS_TABLE_COLUMNS}
+          columnWidths={BOOKINGS_TABLE_WIDTHS}
+          rows={8}
+        />
       </div>
     );
   }
@@ -225,7 +313,7 @@ function BookingsTab() {
 
   return (
     <>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Total" value={data.summary.totalBookings} />
         <KpiCard label="Confirmed" value={data.summary.confirmed} tone="success" />
         <KpiCard label="Pending" value={data.summary.pending} tone="warning" />
@@ -284,8 +372,13 @@ function PaymentsTab() {
 
   if (loading) {
     return (
-      <div className="flex h-40 items-center justify-center">
-        <Spinner />
+      <div className="mt-4 space-y-6">
+        <KpiGridSkeleton count={4} />
+        <TableSkeleton
+          columns={PAYMENTS_TABLE_COLUMNS}
+          columnWidths={PAYMENTS_TABLE_WIDTHS}
+          rows={8}
+        />
       </div>
     );
   }
@@ -295,7 +388,7 @@ function PaymentsTab() {
 
   return (
     <>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Total payments" value={data.summary.totalPayments} />
         <KpiCard label="Total volume" value={formatBDT(data.summary.totalVolume)} tone="success" />
         <KpiCard
@@ -355,8 +448,13 @@ function InstallmentsTab() {
 
   if (loading) {
     return (
-      <div className="flex h-40 items-center justify-center">
-        <Spinner />
+      <div className="mt-4 space-y-6">
+        <KpiGridSkeleton count={4} />
+        <TableSkeleton
+          columns={INSTALLMENTS_TABLE_COLUMNS}
+          columnWidths={INSTALLMENTS_TABLE_WIDTHS}
+          rows={8}
+        />
       </div>
     );
   }
@@ -366,7 +464,7 @@ function InstallmentsTab() {
 
   return (
     <>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Total" value={data.summary.totalInstallments} />
         <KpiCard label="Total due" value={formatBDT(data.summary.totalDue)} tone="warning" />
         <KpiCard label="Total paid" value={formatBDT(data.summary.totalPaid)} tone="success" />
@@ -421,8 +519,8 @@ function RefundsTab() {
 
   if (loading) {
     return (
-      <div className="flex h-40 items-center justify-center">
-        <Spinner />
+      <div className="mt-4">
+        <KpiGridSkeleton count={4} />
       </div>
     );
   }
@@ -432,7 +530,7 @@ function RefundsTab() {
 
   return (
     <>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Total refunded" value={formatBDT(data.total_refunded)} tone="success" />
         <KpiCard label="Total pending" value={formatBDT(data.total_pending)} tone="warning" />
         <KpiCard label="Total count" value={data.total_count} />

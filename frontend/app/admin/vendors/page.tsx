@@ -1,6 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import {
+  Building2,
+  Receipt,
+  PencilLine,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
 import {
@@ -19,13 +26,20 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import Input from "@/components/ui/Input";
-import Select from "@/components/ui/Select";
+import AppSelect from "@/components/ui/AppSelect";
+import DatePicker from "@/components/ui/DatePicker";
 import StatusBadge from "@/components/booking/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
-import Spinner from "@/components/ui/Spinner";
+import TableSkeleton from "@/components/ui/TableSkeleton";
 import Pagination from "@/components/ui/Pagination";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { formatBDT, formatDate } from "@/lib/format";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -36,9 +50,46 @@ const TYPE_LABEL: Record<string, string> = {
   OTHER: "Other",
 };
 
+const VENDOR_TYPE_OPTIONS = [
+  { value: "HOTEL", label: "Hotel" },
+  { value: "AIRLINE", label: "Airline" },
+  { value: "TRANSPORT", label: "Transport" },
+  { value: "VISA", label: "Visa" },
+  { value: "OTHER", label: "Other" },
+];
+
+const EXPENSE_TYPE_OPTIONS = [
+  { value: "HOTEL", label: "Hotel" },
+  { value: "AIRLINE", label: "Airline" },
+  { value: "TRANSPORT", label: "Transport" },
+  { value: "VISA", label: "Visa" },
+  { value: "OTHER", label: "Other" },
+];
+
+const VENDOR_TABLE_COLUMNS = 5;
+const VENDOR_TABLE_WIDTHS = [
+  "w-44", // Name
+  "w-24", // Type
+  "w-44", // Contact
+  "w-20", // Status
+  "w-20", // Actions
+];
+
+const EXPENSE_TABLE_COLUMNS = 6;
+const EXPENSE_TABLE_WIDTHS = [
+  "w-24", // Date
+  "w-32", // Vendor
+  "w-24", // Type
+  "w-24", // Amount
+  "w-20", // BDT
+  "w-20", // Booking
+];
+
+type TabValue = "vendors" | "expenses";
+
 export default function VendorsPage() {
   const [expensesPage, setExpensesPage] = useState(1);
-  const [tab, setTab] = useState<"vendors" | "expenses">("vendors");
+  const [tab, setTab] = useState<TabValue>("vendors");
 
   const [showVendor, setShowVendor] = useState(false);
   const [showExpense, setShowExpense] = useState(false);
@@ -69,42 +120,51 @@ export default function VendorsPage() {
               variant="outline"
               onClick={() => setShowExpense(true)}
             >
+              <PencilLine className="h-4 w-4" aria-hidden />
               Log expense
             </Button>
             <Button size="sm" onClick={() => setShowVendor(true)}>
+              <Plus className="h-4 w-4" aria-hidden />
               New vendor
             </Button>
           </div>
         }
       />
 
-      <div className="mt-4 flex gap-1 border-b border-border">
-        <TabButton active={tab === "vendors"} onClick={() => setTab("vendors")}>
-          Vendors
-        </TabButton>
-        <TabButton active={tab === "expenses"} onClick={() => setTab("expenses")}>
-          Expenses
-        </TabButton>
-      </div>
+      <Tabs
+        value={tab}
+        onValueChange={(v) => setTab(v as TabValue)}
+        className="mt-4"
+      >
+        <TabsList>
+          <TabsTrigger value="vendors" icon={<Building2 className="h-4 w-4" />}>
+            Vendors
+          </TabsTrigger>
+          <TabsTrigger value="expenses" icon={<Receipt className="h-4 w-4" />}>
+            Expenses
+          </TabsTrigger>
+        </TabsList>
 
-      {tab === "vendors" && (
-        <VendorsList
-          loading={vendors.loading}
-          error={vendors.error}
-          onRefetch={vendors.refetch}
-          vendors={vendors.data?.data ?? []}
-        />
-      )}
-      {tab === "expenses" && (
-        <ExpensesList
-          loading={expenses.loading}
-          error={expenses.error}
-          onRefetch={expenses.refetch}
-          expenses={expenses.data?.data ?? []}
-          meta={expenses.data?.meta ?? null}
-          setPage={setExpensesPage}
-        />
-      )}
+        <TabsContent value="vendors">
+          <VendorsList
+            loading={vendors.loading}
+            error={vendors.error}
+            onRefetch={vendors.refetch}
+            vendors={vendors.data?.data ?? []}
+          />
+        </TabsContent>
+
+        <TabsContent value="expenses">
+          <ExpensesList
+            loading={expenses.loading}
+            error={expenses.error}
+            onRefetch={expenses.refetch}
+            expenses={expenses.data?.data ?? []}
+            meta={expenses.data?.meta ?? null}
+            setPage={setExpensesPage}
+          />
+        </TabsContent>
+      </Tabs>
 
       <NewVendorModal
         open={showVendor}
@@ -118,29 +178,6 @@ export default function VendorsPage() {
         onCreated={() => expenses.refetch()}
       />
     </>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`-mb-px border-b-2 px-4 py-2 text-default font-medium transition-colors ${
-        active
-          ? "border-emerald text-emerald"
-          : "border-transparent text-text-muted hover:text-text"
-      }`}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -168,11 +205,13 @@ function VendorsList({
   });
 
   return (
-    <div className="mt-6">
+    <div className="mt-2">
       {loading ? (
-        <div className="flex h-40 items-center justify-center">
-          <Spinner />
-        </div>
+        <TableSkeleton
+          columns={VENDOR_TABLE_COLUMNS}
+          columnWidths={VENDOR_TABLE_WIDTHS}
+          rows={6}
+        />
       ) : error ? (
         <ErrorState message={error} retry={onRefetch} />
       ) : vendors.length === 0 ? (
@@ -209,8 +248,9 @@ function VendorsList({
                     <button
                       onClick={() => del.confirm(v)}
                       disabled={del.busy}
-                      className="text-meta font-medium text-danger hover:underline disabled:opacity-50"
+                      className="inline-flex items-center gap-1 text-meta font-medium text-danger hover:underline disabled:opacity-50"
                     >
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
                       {del.busy ? "Deleting…" : "Delete"}
                     </button>
                   </td>
@@ -241,11 +281,13 @@ function ExpensesList({
   setPage: (p: number) => void;
 }) {
   return (
-    <div className="mt-6">
+    <div className="mt-2">
       {loading ? (
-        <div className="flex h-40 items-center justify-center">
-          <Spinner />
-        </div>
+        <TableSkeleton
+          columns={EXPENSE_TABLE_COLUMNS}
+          columnWidths={EXPENSE_TABLE_WIDTHS}
+          rows={8}
+        />
       ) : error ? (
         <ErrorState message={error} retry={onRefetch} />
       ) : expenses.length === 0 ? (
@@ -356,18 +398,11 @@ function NewVendorModal({
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <Select
-          id="vendor-type"
+        <AppSelect
           label="Type"
           value={type}
-          onChange={(e) => setType(e.target.value as RawVendorType)}
-          options={[
-            { value: "HOTEL", label: "Hotel" },
-            { value: "AIRLINE", label: "Airline" },
-            { value: "TRANSPORT", label: "Transport" },
-            { value: "VISA", label: "Visa" },
-            { value: "OTHER", label: "Other" },
-          ]}
+          onValueChange={(v) => setType(v as RawVendorType)}
+          options={VENDOR_TYPE_OPTIONS}
         />
         <Input
           id="vendor-contact"
@@ -466,11 +501,10 @@ function NewExpenseModal({
   return (
     <Modal open={open} onClose={onClose} title="Log vendor expense">
       <div className="space-y-4">
-        <Select
-          id="expense-vendor"
+        <AppSelect
           label="Vendor"
           value={vendorId}
-          onChange={(e) => setVendorId(e.target.value)}
+          onValueChange={setVendorId}
           options={[
             { value: "", label: "Select vendor…" },
             ...vendorOptions,
@@ -502,25 +536,16 @@ function NewExpenseModal({
             onChange={(e) => setExchangeRate(e.target.value)}
             hint="To BDT"
           />
-          <Select
-            id="expense-type"
+          <AppSelect
             label="Expense type"
             value={expenseType}
-            onChange={(e) => setExpenseType(e.target.value as RawVendorType)}
-            options={[
-              { value: "HOTEL", label: "Hotel" },
-              { value: "AIRLINE", label: "Airline" },
-              { value: "TRANSPORT", label: "Transport" },
-              { value: "VISA", label: "Visa" },
-              { value: "OTHER", label: "Other" },
-            ]}
+            onValueChange={(v) => setExpenseType(v as RawVendorType)}
+            options={EXPENSE_TYPE_OPTIONS}
           />
-          <Input
-            id="expense-date"
-            type="date"
+          <DatePicker
             label="Date"
             value={expenseDate}
-            onChange={(e) => setExpenseDate(e.target.value)}
+            onChange={setExpenseDate}
           />
           <Input
             id="expense-booking"

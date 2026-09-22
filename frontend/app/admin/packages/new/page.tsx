@@ -10,7 +10,7 @@ import PageHeader from "@/components/ui/PageHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import Select from "@/components/ui/Select";
+import AppSelect from "@/components/ui/AppSelect";
 import { ApiError } from "@/lib/api/types";
 
 type TierName = "ECONOMY" | "STANDARD" | "VIP";
@@ -188,13 +188,12 @@ export default function NewPackagePage() {
           placeholder="Hajj Premium 2027"
           required
         />
-        <Select
-          id="type"
+        <AppSelect
           label="Package type"
           value={type}
-          onChange={(e) =>
+          onValueChange={(v) =>
             setType(
-              e.target.value as "HAJJ" | "RAMADAN_UMRAH" | "OFF_SEASON_UMRAH" | "ZIYARAH",
+              v as "HAJJ" | "RAMADAN_UMRAH" | "OFF_SEASON_UMRAH" | "ZIYARAH",
             )
           }
           options={[
@@ -285,12 +284,11 @@ export default function NewPackagePage() {
               key={i}
               className="grid gap-3 rounded-chip border border-border bg-base p-3 sm:grid-cols-[140px_1fr_1fr_auto] sm:items-end"
             >
-              <Select
-                id={`tier-${i}-name`}
+              <AppSelect
                 label="Name"
                 value={t.name}
-                onChange={(e) =>
-                  updateTier(i, { name: e.target.value as TierName })
+                onValueChange={(v) =>
+                  updateTier(i, { name: v as TierName })
                 }
                 options={[
                   { value: "ECONOMY", label: "Economy" },

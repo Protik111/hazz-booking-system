@@ -1,7 +1,8 @@
 "use client";
 
 import Input from "@/components/ui/Input";
-import Select from "@/components/ui/Select";
+import AppSelect from "@/components/ui/AppSelect";
+import DatePicker from "@/components/ui/DatePicker";
 import Button from "@/components/ui/Button";
 
 export interface PilgrimFormData {
@@ -75,22 +76,16 @@ export default function PilgrimForm({
           placeholder="As on passport"
           required
         />
-        <Input
-          id={`p-${index}-dob`}
-          type="date"
+        <DatePicker
           label="Date of birth"
           value={data.date_of_birth}
-          onChange={(e) => update("date_of_birth", e.target.value)}
+          onChange={(v) => update("date_of_birth", v)}
           error={errors?.date_of_birth}
-          required
         />
-        <Select
-          id={`p-${index}-gender`}
+        <AppSelect
           label="Gender"
           value={data.gender}
-          onChange={(e) =>
-            update("gender", e.target.value as "MALE" | "FEMALE")
-          }
+          onValueChange={(v) => update("gender", v as "MALE" | "FEMALE")}
           options={[
             { value: "MALE", label: "Male" },
             { value: "FEMALE", label: "Female" },
@@ -114,19 +109,15 @@ export default function PilgrimForm({
           placeholder="A1234567"
           required
         />
-        <Input
-          id={`p-${index}-issued`}
-          type="date"
+        <DatePicker
           label="Passport issue date"
           value={data.passport_issue_date}
-          onChange={(e) => update("passport_issue_date", e.target.value)}
+          onChange={(v) => update("passport_issue_date", v)}
         />
-        <Input
-          id={`p-${index}-expiry`}
-          type="date"
+        <DatePicker
           label="Passport expiry date"
           value={data.passport_expiry_date}
-          onChange={(e) => update("passport_expiry_date", e.target.value)}
+          onChange={(v) => update("passport_expiry_date", v)}
           hint="Must be valid for the entire trip"
         />
         <Input

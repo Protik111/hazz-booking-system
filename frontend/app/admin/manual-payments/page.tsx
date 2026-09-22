@@ -14,16 +14,26 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import Input from "@/components/ui/Input";
-import Select from "@/components/ui/Select";
+import AppSelect from "@/components/ui/AppSelect";
 import StatusBadge from "@/components/booking/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
-import Spinner from "@/components/ui/Spinner";
+import TableSkeleton from "@/components/ui/TableSkeleton";
 import Pagination from "@/components/ui/Pagination";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { errorMessage } from "@/lib/api/types";
 import { useToast } from "@/contexts/ToastContext";
 import { formatBDT, formatDateTime } from "@/lib/format";
+
+const TABLE_COLUMNS = 6;
+const TABLE_WIDTHS = [
+  "w-20", // Booking
+  "w-20", // Amount
+  "w-32", // Reference
+  "w-32", // Created
+  "w-20", // Status
+  "w-24", // Actions
+];
 
 export default function AdminManualPaymentsPage() {
   const [status, setStatus] = useState("");
@@ -82,11 +92,10 @@ export default function AdminManualPaymentsPage() {
       />
 
       <div className="mt-4 flex flex-wrap gap-3">
-        <Select
-          id="status-filter"
+        <AppSelect
           value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
+          onValueChange={(v) => {
+            setStatus(v);
             setPage(1);
           }}
           options={[
@@ -95,13 +104,18 @@ export default function AdminManualPaymentsPage() {
             { value: "APPROVED", label: "Approved" },
             { value: "REJECTED", label: "Rejected" },
           ]}
+          placeholder="All statuses"
           className="min-w-[180px]"
         />
       </div>
 
       {loading ? (
-        <div className="mt-6 flex h-40 items-center justify-center">
-          <Spinner />
+        <div className="mt-6">
+          <TableSkeleton
+            columns={TABLE_COLUMNS}
+            columnWidths={TABLE_WIDTHS}
+            rows={8}
+          />
         </div>
       ) : error ? (
         <ErrorState message={error} retry={refetch} className="mt-6" />

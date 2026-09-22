@@ -13,11 +13,11 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import Input from "@/components/ui/Input";
-import Select from "@/components/ui/Select";
+import AppSelect from "@/components/ui/AppSelect";
 import StatusBadge from "@/components/booking/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
-import Spinner from "@/components/ui/Spinner";
+import TableSkeleton from "@/components/ui/TableSkeleton";
 import Pagination from "@/components/ui/Pagination";
 import { ApiError } from "@/lib/api/types";
 import { formatBDT, formatDate } from "@/lib/format";
@@ -27,6 +27,18 @@ const STATUS_OPTIONS = [
   { value: "MATCHED", label: "Matched" },
   { value: "MISMATCH", label: "Mismatch" },
   { value: "RESOLVED", label: "Resolved" },
+];
+
+const TABLE_COLUMNS = 8;
+const TABLE_WIDTHS = [
+  "w-20", // Gateway
+  "w-32", // Transaction
+  "w-20", // Internal
+  "w-20", // Gateway amount
+  "w-20", // Diff
+  "w-24", // Settled
+  "w-20", // Status
+  "w-24", // Actions
 ];
 
 interface ImportRow {
@@ -143,21 +155,25 @@ export default function ReconciliationPage() {
       />
 
       <div className="mt-4 flex flex-wrap gap-3">
-        <Select
-          id="status-filter"
+        <AppSelect
           value={status}
-          onChange={(e) => {
-            setStatus(e.target.value as RawReconciliationStatus);
+          onValueChange={(v) => {
+            setStatus(v as RawReconciliationStatus);
             setPage(1);
           }}
           options={STATUS_OPTIONS}
+          placeholder="All statuses"
           className="min-w-[180px]"
         />
       </div>
 
       {loading ? (
-        <div className="flex h-40 items-center justify-center">
-          <Spinner />
+        <div className="mt-6">
+          <TableSkeleton
+            columns={TABLE_COLUMNS}
+            columnWidths={TABLE_WIDTHS}
+            rows={10}
+          />
         </div>
       ) : error ? (
         <ErrorState message={error} retry={refetch} className="mt-6" />
@@ -310,14 +326,13 @@ export default function ReconciliationPage() {
       >
         {resolving && (
           <div className="space-y-4">
-            <Select
-              id="resolve-status"
+            <AppSelect
               label="Resolution status"
               value={resolving.status}
-              onChange={(e) =>
+              onValueChange={(v) =>
                 setResolving({
                   ...resolving,
-                  status: e.target.value as "RESOLVED" | "MATCHED" | "MISMATCH",
+                  status: v as "RESOLVED" | "MATCHED" | "MISMATCH",
                 })
               }
               options={[

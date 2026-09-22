@@ -10,9 +10,19 @@ import Button from "@/components/ui/Button";
 import StatusBadge from "@/components/booking/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
-import Spinner from "@/components/ui/Spinner";
+import TableSkeleton from "@/components/ui/TableSkeleton";
 import Pagination from "@/components/ui/Pagination";
 import { formatBDT, formatDateTime } from "@/lib/format";
+
+const TABLE_COLUMNS = 6;
+const TABLE_WIDTHS = [
+  "w-32", // Date
+  "w-24", // Booking
+  "w-20", // Method
+  "w-20", // Amount
+  "w-32", // Reference
+  "w-20", // Status
+];
 
 const METHOD_LABEL: Record<string, string> = {
   BKASH: "bKash",
@@ -74,8 +84,12 @@ export default function PaymentsListPage() {
       <div className="mt-4 flex flex-wrap items-center gap-3" />
 
       {loading ? (
-        <div className="flex h-40 items-center justify-center">
-          <Spinner />
+        <div className="mt-6">
+          <TableSkeleton
+            columns={TABLE_COLUMNS}
+            columnWidths={TABLE_WIDTHS}
+            rows={8}
+          />
         </div>
       ) : error ? (
         <ErrorState message={error} retry={refetch} className="mt-6" />

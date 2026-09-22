@@ -76,6 +76,120 @@
   --text-meta: 0.75rem;
   --text-meta--line-height: 1.4;
   --text-meta--letter-spacing: 0.04em;
+
+  /* shadcn-compatible keyframes */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-fade-in: fade-in 0.2s ease-out;
+  --animate-fade-out: fade-out 0.15s ease-in;
+  --animate-zoom-in: zoom-in 0.2s ease-out;
+  --animate-zoom-out: zoom-out 0.15s ease-in;
+  --animate-slide-in-from-top: slide-in-from-top 0.2s ease-out;
+  --animate-slide-in-from-bottom: slide-in-from-bottom 0.2s ease-out;
+  --animate-slide-in-from-left: slide-in-from-left 0.2s ease-out;
+  --animate-slide-in-from-right: slide-in-from-right 0.2s ease-out;
+  --animate-shimmer: shimmer 2s linear infinite;
+}
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes zoom-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes zoom-out {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}
+@keyframes slide-in-from-top {
+  from {
+    transform: translateY(-0.5rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes slide-in-from-bottom {
+  from {
+    transform: translateY(0.5rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes slide-in-from-left {
+  from {
+    transform: translateX(-0.5rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes slide-in-from-right {
+  from {
+    transform: translateX(0.5rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 html {
@@ -102,4 +216,69 @@ body {
 
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* ---- Skeleton shimmer ---- */
+.skeleton {
+  background-color: rgb(241 245 249);
+  background-image: linear-gradient(
+    90deg,
+    rgb(241 245 249) 0%,
+    rgb(226 232 240) 50%,
+    rgb(241 245 249) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+  border-radius: 0.5rem;
+}
+
+/* ---- react-day-picker theme overrides ---- */
+.rdp-root {
+  --rdp-accent-color: var(--color-emerald);
+  --rdp-accent-background-color: rgba(4, 120, 87, 0.1);
+  --rdp-day-height: 2.25rem;
+  --rdp-day-width: 2.25rem;
+  --rdp-font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  font-size: 0.875rem;
+}
+
+.rdp-day_button {
+  border-radius: 0.5rem;
+  transition: background-color 0.15s ease;
+}
+
+.rdp-day_button:hover:not([disabled]) {
+  background-color: rgba(4, 120, 87, 0.08);
+}
+
+.rdp-selected .rdp-day_button {
+  background-color: var(--color-emerald) !important;
+  color: white !important;
+}
+
+.rdp-today .rdp-day_button {
+  font-weight: 700;
+  color: var(--color-emerald);
+}
+
+.rdp-head_cell {
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.rdp-caption_label {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.rdp-nav_button {
+  border-radius: 0.5rem;
+  transition: background-color 0.15s ease;
+}
+
+.rdp-nav_button:hover {
+  background-color: var(--color-base);
 }

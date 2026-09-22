@@ -10,8 +10,9 @@ import Button from "@/components/ui/Button";
 import StatusBadge from "@/components/booking/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
-import Spinner from "@/components/ui/Spinner";
+import TableSkeleton from "@/components/ui/TableSkeleton";
 import Pagination from "@/components/ui/Pagination";
+import AppSelect from "@/components/ui/AppSelect";
 import { formatBDT, formatDate } from "@/lib/format";
 
 const STATUS_OPTIONS = [
@@ -22,6 +23,17 @@ const STATUS_OPTIONS = [
   { value: "EXPIRED", label: "Expired" },
   { value: "CANCELLED", label: "Cancelled" },
   { value: "COMPLETED", label: "Completed" },
+];
+
+const TABLE_COLUMNS = 7;
+const TABLE_WIDTHS = [
+  "w-24", // Booking
+  "w-44", // Package
+  "w-10", // Travelers
+  "w-24", // Departure
+  "w-20", // Total
+  "w-20", // Outstanding
+  "w-20", // Status
 ];
 
 export default function BookingsListPage() {
@@ -49,25 +61,25 @@ export default function BookingsListPage() {
       />
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <select
+        <AppSelect
           value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
+          onValueChange={(v) => {
+            setStatus(v);
             setPage(1);
           }}
-          className="rounded-chip border border-border bg-card px-3 py-2 text-default text-text focus:border-emerald focus:outline-none"
-        >
-          {STATUS_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+          options={STATUS_OPTIONS}
+          placeholder="All statuses"
+          className="min-w-[180px]"
+        />
       </div>
 
       {loading ? (
-        <div className="flex h-40 items-center justify-center">
-          <Spinner />
+        <div className="mt-6">
+          <TableSkeleton
+            columns={TABLE_COLUMNS}
+            columnWidths={TABLE_WIDTHS}
+            rows={8}
+          />
         </div>
       ) : error ? (
         <ErrorState message={error} retry={refetch} className="mt-6" />
@@ -79,9 +91,7 @@ export default function BookingsListPage() {
               ? `No bookings with status "${status}".`
               : "You haven't booked anything yet."
           }
-          action={
-            <Button href="/packages">Browse packages</Button>
-          }
+          action={<Button href="/packages">Browse packages</Button>}
           className="mt-6"
         />
       ) : (

@@ -16,14 +16,25 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import Input from "@/components/ui/Input";
-import Select from "@/components/ui/Select";
+import AppSelect from "@/components/ui/AppSelect";
 import StatusBadge from "@/components/booking/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
-import Spinner from "@/components/ui/Spinner";
+import TableSkeleton from "@/components/ui/TableSkeleton";
 import Pagination from "@/components/ui/Pagination";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { errorMessage } from "@/lib/api/types";
+
+const TABLE_COLUMNS = 7;
+const TABLE_WIDTHS = [
+  "w-44", // Name
+  "w-20", // SKU
+  "w-16", // Unit
+  "w-16", // On hand
+  "w-16", // Min.
+  "w-20", // Status
+  "w-24", // Actions
+];
 
 export default function InventoryPage() {
   const [page, setPage] = useState(1);
@@ -84,8 +95,12 @@ export default function InventoryPage() {
       </div>
 
       {loading ? (
-        <div className="flex h-40 items-center justify-center">
-          <Spinner />
+        <div className="mt-6">
+          <TableSkeleton
+            columns={TABLE_COLUMNS}
+            columnWidths={TABLE_WIDTHS}
+            rows={8}
+          />
         </div>
       ) : error ? (
         <ErrorState message={error} retry={refetch} className="mt-6" />
@@ -368,12 +383,11 @@ function AdjustModal({
       title={target ? `Adjust "${target.name}"` : ""}
     >
       <div className="space-y-3">
-        <Select
-          id="adj-type"
+        <AppSelect
           label="Transaction type"
           value={type}
-          onChange={(e) =>
-            setType(e.target.value as RawInventoryTransactionType)
+          onValueChange={(v) =>
+            setType(v as RawInventoryTransactionType)
           }
           options={[
             { value: "PURCHASE", label: "Purchase (add stock)" },

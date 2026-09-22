@@ -9,9 +9,9 @@ import Card from "@/components/ui/Card";
 import StatusBadge from "@/components/booking/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
-import Spinner from "@/components/ui/Spinner";
+import TableSkeleton from "@/components/ui/TableSkeleton";
 import Pagination from "@/components/ui/Pagination";
-import Select from "@/components/ui/Select";
+import AppSelect from "@/components/ui/AppSelect";
 import { formatBDT, formatDate } from "@/lib/format";
 
 const STATUS_OPTIONS = [
@@ -22,6 +22,17 @@ const STATUS_OPTIONS = [
   { value: "EXPIRED", label: "Expired" },
   { value: "CANCELLED", label: "Cancelled" },
   { value: "COMPLETED", label: "Completed" },
+];
+
+const TABLE_COLUMNS = 7;
+const TABLE_WIDTHS = [
+  "w-24", // Booking #
+  "w-20", // User ID
+  "w-44", // Package
+  "w-10", // Travelers
+  "w-20", // Total
+  "w-20", // Outstanding
+  "w-20", // Status
 ];
 
 export default function AdminBookingsPage() {
@@ -44,21 +55,25 @@ export default function AdminBookingsPage() {
       />
 
       <div className="mt-4 flex flex-wrap gap-3">
-        <Select
-          id="status-filter"
+        <AppSelect
           value={status}
-          onChange={(e) => {
-            setStatus(e.target.value);
+          onValueChange={(v) => {
+            setStatus(v);
             setPage(1);
           }}
           options={STATUS_OPTIONS}
+          placeholder="All statuses"
           className="min-w-[180px]"
         />
       </div>
 
       {loading ? (
-        <div className="flex h-40 items-center justify-center">
-          <Spinner />
+        <div className="mt-6">
+          <TableSkeleton
+            columns={TABLE_COLUMNS}
+            columnWidths={TABLE_WIDTHS}
+            rows={10}
+          />
         </div>
       ) : error ? (
         <ErrorState message={error} retry={refetch} className="mt-6" />

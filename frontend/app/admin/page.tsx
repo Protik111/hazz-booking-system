@@ -13,7 +13,8 @@ import Button from "@/components/ui/Button";
 import StatusBadge from "@/components/booking/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
-import Spinner from "@/components/ui/Spinner";
+import KpiGridSkeleton from "@/components/ui/KpiGridSkeleton";
+import CardSkeleton from "@/components/ui/CardSkeleton";
 import KpiCard from "@/components/admin/KpiCard";
 import { formatBDT, formatDate } from "@/lib/format";
 
@@ -52,8 +53,12 @@ export default function AdminOverviewPage() {
       />
 
       {loading ? (
-        <div className="flex h-40 items-center justify-center">
-          <Spinner />
+        <div className="mt-6 space-y-6">
+          <KpiGridSkeleton count={8} />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <CardSkeleton rows={4} />
+            <CardSkeleton rows={4} />
+          </div>
         </div>
       ) : error ? (
         <ErrorState message={error} retry={refetch} />

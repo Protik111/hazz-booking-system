@@ -8,10 +8,19 @@ import PageHeader from "@/components/ui/PageHeader";
 import Card from "@/components/ui/Card";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
-import Spinner from "@/components/ui/Spinner";
+import TableSkeleton from "@/components/ui/TableSkeleton";
 import Pagination from "@/components/ui/Pagination";
 import Input from "@/components/ui/Input";
 import { formatDateTime } from "@/lib/format";
+
+const TABLE_COLUMNS = 5;
+const TABLE_WIDTHS = [
+  "w-32", // When
+  "w-32", // Action
+  "w-32", // Entity
+  "w-24", // Actor
+  "w-48", // Details
+];
 
 export default function AuditLogsPage() {
   const [action, setAction] = useState("");
@@ -63,8 +72,12 @@ export default function AuditLogsPage() {
       </div>
 
       {loading ? (
-        <div className="flex h-40 items-center justify-center">
-          <Spinner />
+        <div className="mt-6">
+          <TableSkeleton
+            columns={TABLE_COLUMNS}
+            columnWidths={TABLE_WIDTHS}
+            rows={10}
+          />
         </div>
       ) : error ? (
         <ErrorState message={error} retry={refetch} className="mt-6" />

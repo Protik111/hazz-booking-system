@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useMemo } from "react";
-import Select from "@/components/ui/Select";
+import AppSelect from "@/components/ui/AppSelect";
 import Button from "@/components/ui/Button";
 import type { PackageAvailability, RawPackageType } from "@/lib/api/endpoints";
 import {
@@ -118,23 +118,21 @@ export default function PackageFilters({
     <div className="mt-6 rounded-card border border-border bg-card p-4">
       <div className="flex flex-wrap items-end gap-3">
         <div className="w-full sm:w-48">
-          <Select
-            id="type-filter"
+          <AppSelect
             label="Package type"
             value={currentType}
-            onChange={(e) => updateType(e.target.value)}
+            onValueChange={updateType}
             options={TYPE_OPTIONS}
             placeholder="All types"
           />
         </div>
 
         <div className="w-full sm:w-56">
-          <Select
-            id="month-filter"
+          <AppSelect
             label="Departure month"
             value={focused.monthIdx !== null ? String(focused.monthIdx) : ""}
-            onChange={(e) =>
-              updateMonth(e.target.value === "" ? null : parseInt(e.target.value, 10))
+            onValueChange={(v) =>
+              updateMonth(v === "" ? null : parseInt(v, 10))
             }
             options={monthOptions}
             placeholder="Any month"
