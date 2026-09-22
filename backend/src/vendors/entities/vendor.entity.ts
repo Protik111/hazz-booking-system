@@ -29,6 +29,11 @@ export class Vendor {
   })
   type!: VendorType;
 
+  /** Free-text contact info (email / phone / website / notes). Frontend
+   *  renders this as the single "Contact info" field on the vendor form. */
+  @Column({ type: 'text', nullable: true })
+  contact_info!: string | null;
+
   @Column({ type: 'varchar', length: 150, nullable: true })
   contact_name!: string | null;
 

@@ -21,6 +21,10 @@ export class CreateVendorDto {
 
   @IsString()
   @IsOptional()
+  contact_info?: string;
+
+  @IsString()
+  @IsOptional()
   @MaxLength(150)
   contact_name?: string;
 
